@@ -1,1 +1,85 @@
-/.DS_Store
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# --- Jupyter / Colab ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- Secrets & credentials ---
+.env
+.env.*
+secrets/
+*.pem
+*.key
+
+# --- ML training artifacts (large; regenerate or pull from HF) ---
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.gguf
+*.h5
+*.pkl
+*.pickle
+
+checkpoints/
+models/
+weights/
+saved_models/
+outputs/
+runs/
+logs/
+wandb/
+lightning_logs/
+tensorboard/
+events.out.tfevents.*
+
+# --- Data (download or generate locally) ---
+data/
+datasets/
+raw/
+processed/
+*.csv
+*.jsonl
+*.parquet
+*.arrow
+
+# --- Hugging Face cache & downloaded weights ---
+.cache/
+huggingface/
+hf_cache/
+
+# --- Archives & bulk downloads ---
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# --- IDE / editor ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
