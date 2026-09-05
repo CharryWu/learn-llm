@@ -8,7 +8,7 @@
 
 ## 🗺️ The Whole Map
 
-```
+```text
                     ┌─────────────────────────────────────────┐
                     │        BUILDING AN LLM (6 domains)      │
                     └─────────────────────────────────────────┘
@@ -32,19 +32,20 @@
 
 ### Perceptron — the atom
 
-```
+```text
     inputs        weights       bias    activation
     x1 ──w1──┐
     x2 ──w2──┼──► Σ (wᵢxᵢ) + b ──► f(·) ──► output
     x3 ──w3──┘
 ```
+
 A perceptron = weighted sum + nonlinear squish. Stack them → MLP. Stack MLPs with attention → transformer.
 
 ### MLP Anatomy — Hidden vs. Activation Layers
 
 A **Multi-Layer Perceptron** = input layer + ≥1 *hidden* layer + output layer, with *activation* applied between them.
 
-```
+```text
    Input layer        Hidden layer 1       Hidden layer 2        Output layer
    (the data)         (linear + act)       (linear + act)        (linear [+ act])
 
@@ -60,13 +61,14 @@ A **Multi-Layer Perceptron** = input layer + ≥1 *hidden* layer + output layer,
 People use the terms loosely. Strictly:
 
 | Term | What it actually means |
-|---|---|
+| --- | --- |
 | **Hidden layer** | A layer of neurons that's neither input nor output. Each neuron does `Σ(wᵢxᵢ) + b` (the **linear** / **dense** / **fully-connected** transformation). Called "hidden" because users only see input and output. |
 | **Activation layer** | The nonlinear function `f(·)` applied **after** a hidden layer's linear transform. Sometimes broken out as a separate "layer" in framework code (e.g. `nn.ReLU()`), but mathematically it's just the squish step inside the hidden layer. |
 | **Hidden units / neurons / width** | How many neurons are in one hidden layer (e.g. "768 hidden units"). |
 | **Depth** | How many hidden layers are stacked. |
 
 In PyTorch you literally write them as separate modules:
+
 ```python
 nn.Linear(in, hidden)   # ← "hidden layer" (the dense transform)
 nn.ReLU()               # ← "activation layer" (the nonlinearity)
@@ -79,7 +81,7 @@ nn.Linear(hidden, out)  # ← next hidden/output layer
 
 This trips people up. Watch the dimensions carefully:
 
-```
+```text
    input vector     W₁: [4 × 8]      W₂: [8 × 8]       W₃: [8 × 2]
    x ∈ ℝ⁴           bias b₁: [8]     bias b₂: [8]      bias b₃: [2]
                                                               
@@ -95,17 +97,19 @@ This trips people up. Watch the dimensions carefully:
 **Linear layers do** — `nn.Linear(in_features, out_features)` reshapes `[..., in]` → `[..., out]`.
 
 For a batch of B examples:
-```
+
+```text
    X         W₁         X·W₁+b₁     ReLU       output
    [B, 4]  · [4, 8]  =  [B, 8]   →  [B, 8]   →  ...
 ```
+
 The leading batch dim rides through unchanged. Only the **last dim** (features) gets transformed.
 
 #### Worked numerical example
 
 Input vector `x = [1, 2, 3, 4]`, hidden dim 8, output dim 2:
 
-```
+```text
    x: [4]  ─► Linear(4→8) ─► z₁: [8]  ─► ReLU ─► h₁: [8]
                                                   │
                                                   ▼
@@ -114,6 +118,7 @@ Input vector `x = [1, 2, 3, 4]`, hidden dim 8, output dim 2:
                                                               ▼
                                               Linear(8→2) ─► ŷ: [2]
 ```
+
 Param count: `(4·8+8) + (8·8+8) + (8·2+2) = 40 + 72 + 18 = 130`. Most params live in the wide middle.
 
 ### Do SOTA LLMs still have hidden + activation layers?
@@ -121,7 +126,7 @@ Param count: `(4·8+8) + (8·8+8) + (8·2+2) = 40 + 72 + 18 = 130`. Most params 
 **Yes — they're everywhere, just renamed and reshaped.** A modern transformer is mostly hidden + activation layers wired up cleverly. The two main places:
 
 | Where in transformer | What it is | Modern shape |
-|---|---|---|
+| --- | --- | --- |
 | **FFN (feed-forward network) inside each block** | Two linear layers with an activation between them — literally a 2-layer MLP per token | Llama: `Linear(d→4d) → SwiGLU → Linear(4d→d)` |
 | **Q/K/V/output projections in attention** | Linear layers (no activation between) | `Linear(d→d)` each |
 | **LM head** | Final linear projection to vocab | `Linear(d→vocab)` |
@@ -136,13 +141,14 @@ A canonical "first MLP" exercise: train a small dense network to compute **(A ×
 
 #### The task
 
-```
+```text
    inputs:  A, B, C  (e.g. A=7, B=8, C=5)
    target:  (A · B) % C  =  56 % 5  =  1
    model:   "given A, B, C → predict the remainder"
 ```
 
 Why it's a good teaching example:
+
 - **Nonlinear** (modulo wraps around) → linear regression can't solve it.
 - **Tiny** → trains in seconds on a laptop.
 - **Verifiable** → ground truth is exact arithmetic.
@@ -150,7 +156,7 @@ Why it's a good teaching example:
 
 #### Architecture (`20 → 100 → 100 → 1`)
 
-```
+```text
    ┌───────────────┐    ┌───────────────┐   ┌───────────────┐   ┌──────┐
    │ INPUT LAYER   │    │ HIDDEN 1      │   │ HIDDEN 2      │   │ OUT  │
    │ 20 features   │    │ 100 neurons   │   │ 100 neurons   │   │ 1    │
@@ -165,13 +171,14 @@ Why **20 inputs** for only 3 numbers? Because raw integers are bad input — the
 
 #### Dimensional walk-through
 
-```
+```text
    batch x         W₁          z₁         ReLU       h₁          W₂          z₂        ReLU       h₂          W₃          ŷ
    [B, 20]    ·   [20,100]  =  [B,100]   ────►       [B,100]  ·  [100,100] = [B,100]   ────►      [B,100]  ·  [100,1]  = [B,1]
                   +b₁[100]                                       +b₂[100]                                     +b₃[1]
 ```
 
 Param count:
+
 - W₁: `20·100 + 100 = 2,100`
 - W₂: `100·100 + 100 = 10,100`  ← bulk of the model
 - W₃: `100·1 + 1 = 101`
@@ -179,7 +186,7 @@ Param count:
 
 #### How it trains (full loop reuses every concept so far)
 
-```
+```text
    ┌─ generate (A,B,C) random batch                       ← data
    │
    │  forward:  x → Linear → ReLU → Linear → ReLU → Linear → ŷ
@@ -195,7 +202,7 @@ Hyperparameters typical for the demo: `lr=1e-3`, `batch=256`, ReLU, He init.
 #### What this exercise teaches you (and how it maps to LLMs)
 
 | Workshop concept | Where it shows up here | LLM equivalent |
-|---|---|---|
+| --- | --- | --- |
 | Hidden layer | the two `Linear(100)` blocks | FFN's up-projection |
 | Activation | ReLU between layers | SwiGLU in Llama FFN |
 | Loss | MSE for regression | Cross-entropy for next-token |
@@ -210,7 +217,7 @@ Hyperparameters typical for the demo: `lr=1e-3`, `batch=256`, ReLU, He init.
 
 #### Where they fit in the perceptron
 
-```
+```text
    inputs       weights      bias        ⭐ activation here ⭐
    x1 ──w1──┐
    x2 ──w2──┼──► Σ (wᵢxᵢ) + b ──► f(·) ──► output
@@ -225,7 +232,7 @@ The weighted sum is **linear**. Stack 100 linear layers and you still get… a s
 
 The earliest perceptron (1958) used a **step function** — fire (1) or don't (0):
 
-```
+```text
    step(x):    0 ────┐
                      │
                      └──── 1
@@ -239,7 +246,7 @@ Problem: step has zero gradient everywhere → backprop can't learn. So we repla
 
 #### The four shapes you need to recognize
 
-```
+```text
    Sigmoid σ(x)         Tanh                  ReLU                 SwiGLU
    range: 0→1           range: -1→1           range: 0→∞           gated ReLU
                                                                     
@@ -253,7 +260,7 @@ Problem: step has zero gradient everywhere → backprop can't learn. So we repla
 #### Detailed comparison
 
 | Fn | Formula | Range | Use today | Why it failed / wins |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **Step** | `1 if x>0 else 0` | {0,1} | 🪦 historical | zero gradient → can't train |
 | **Sigmoid** | `1/(1+e⁻ˣ)` | (0,1) | classifier final layer, gates | saturates → vanishing gradient in deep nets |
 | **Tanh** | `(eˣ-e⁻ˣ)/(eˣ+e⁻ˣ)` | (-1,1) | RNN era (LSTM gates) | zero-centered (better than sigmoid) but still vanishes |
@@ -265,7 +272,7 @@ Problem: step has zero gradient everywhere → backprop can't learn. So we repla
 #### How activation choice improves LLM performance
 
 | Era | Activation | Result |
-|---|---|---|
+| --- | --- | --- |
 | 1980s | Sigmoid/Tanh | nets >3 layers wouldn't train (vanishing gradients) |
 | 2012 (AlexNet) | **ReLU** | unlocked deep CNNs → ImageNet revolution |
 | 2018 (GPT-2/BERT) | **GELU** | smoother than ReLU → better LLM convergence |
@@ -275,7 +282,7 @@ The pattern: each new activation **lets gradients flow further through deeper st
 
 #### Why ReLU killed sigmoid in practice
 
-```
+```text
    Sigmoid derivative:  max ≈ 0.25  ── multiply 30 of these → 0.25³⁰ ≈ 10⁻¹⁸  💀
    ReLU derivative:     0 or 1     ── multiply 30 of these → still 1            ✅
 ```
@@ -284,7 +291,7 @@ For a 70-layer LLM, sigmoid would zero out gradients before they reach the botto
 
 #### Where each lives in a modern LLM
 
-```
+```text
    ┌────────────────── Transformer block ──────────────────┐
    │                                                       │
    │   Attention:       softmax (a sigmoid cousin)         │  ← probability
@@ -299,6 +306,7 @@ Sigmoid/tanh aren't gone — they live inside softmax and gating mechanisms. ReL
 > **Keep this:** Activations = the nonlinearity that makes "deep" matter. Modern LLMs use **SwiGLU** in FFNs because its smooth, gated shape moves gradients cleanly through 70+ layers — every percent of perplexity comes from details like this.
 
 ### GPU Performance
+
 `torch.compile` → **CUDA kernels** → **Triton** (Python-ish kernel DSL).
 Rule of thumb: matrix multiplies dominate; fuse ops; mind memory bandwidth.
 
@@ -307,7 +315,8 @@ Rule of thumb: matrix multiplies dominate; fuse ops; mind memory bandwidth.
 ## 2️⃣ Training Mechanics — how it learns
 
 ### The Loop
-```
+
+```text
    ┌──► forward pass ──► prediction ──► loss ──┐
    │                                            │
    │                                            ▼
@@ -318,6 +327,7 @@ Rule of thumb: matrix multiplies dominate; fuse ops; mind memory bandwidth.
 ```
 
 ### Loss Functions
+
 - **Cross-Entropy** — for classification / next-token (LLM default)
 - **MSE / RMSE** — for regression
 - **Residual** — raw difference
@@ -328,7 +338,7 @@ Rule of thumb: matrix multiplies dominate; fuse ops; mind memory bandwidth.
 
 #### The two-pass dance
 
-```
+```text
    ┌────────────── FORWARD PASS ──────────────┐
    │ inputs ─► layer1 ─► layer2 ─► ... ─► loss│   compute prediction & loss
    └──────────────────────────────────────────┘
@@ -343,7 +353,7 @@ Rule of thumb: matrix multiplies dominate; fuse ops; mind memory bandwidth.
 A deep net is just nested functions: `loss = L(f₃(f₂(f₁(x, w₁), w₂), w₃))`.
 To know how `w₁` (way at the bottom) affects `loss` (way at the top), multiply the local derivatives along the path:
 
-```
+```text
    ∂loss     ∂loss     ∂f₃     ∂f₂     ∂f₁
   ────── = ────── · ────── · ────── · ──────
    ∂w₁      ∂f₃      ∂f₂     ∂f₁      ∂w₁
@@ -353,27 +363,29 @@ Each layer only needs to know **its own local derivative** + the gradient flowin
 
 #### Tiny worked example (one neuron)
 
-```
+```text
    x=2 ──[w=3]──► z=6 ──[ReLU]──► a=6 ──[loss=(a-y)²]──► L=16     (target y=2)
 ```
 
 Forward: `z = w·x = 6`, `a = ReLU(z) = 6`, `L = (a-y)² = 16`.
 
 Backward (just multiply local derivatives):
-```
+
+```text
    ∂L/∂a = 2(a-y)        = 8         ← loss layer
    ∂a/∂z = 1 (z>0, ReLU) = 1         ← activation
    ∂z/∂w = x             = 2         ← linear
 
    ∂L/∂w = 8 · 1 · 2 = 16            ← chain them
 ```
+
 Update: `w ← 3 - 0.01·16 = 2.84`. Loss next step is lower. Done.
 
 #### Computational graph (what PyTorch builds)
 
 Every tensor op gets recorded as a node. `loss.backward()` walks the graph in reverse, applying each op's known derivative rule. You write forward code; autograd writes the backward pass for you.
 
-```
+```text
        x       w
         \     /
          (mul)         ← node remembers "I'm a multiply"
@@ -394,7 +406,7 @@ Every tensor op gets recorded as a node. `loss.backward()` walks the graph in re
 #### The four things that can go wrong
 
 | Problem | Cause | Fix |
-|---|---|---|
+| --- | --- | --- |
 | **Vanishing gradients** | many <1 derivatives multiplied → ~0 deep down | ReLU + He init + residuals + RMSNorm |
 | **Exploding gradients** | many >1 derivatives multiplied → ∞ | gradient clipping (max norm 1.0) |
 | **Dead neurons** | ReLU stuck at 0 → derivative 0 → no update ever | He init, lower LR, leaky/SwiGLU variants |
@@ -411,22 +423,26 @@ Every tensor op gets recorded as a node. `loss.backward()` walks the graph in re
 > **One-liner to keep:** Forward computes loss, backward computes ∂loss/∂each-weight via chain rule on the recorded graph, optimizer takes a small step against that gradient. Repeat ~10⁷ times. That's "training."
 
 ### Optimizer Family Tree
-```
+
+```text
 SGD ── + momentum ── + adaptive LR (RMSProp/AdaGrad)
                               │
                               └──► Adam ──► AdamW ──► Muon (newest)
 ```
+
 **Default:** AdamW. Modern frontier: Muon.
 
 ### Hyperparameters that matter most
+
 | Knob | Effect |
-|---|---|
+| --- | --- |
 | Learning Rate | Too high = explode, too low = stuck. **Use warmup + decay** |
 | Batch Size | Bigger = stabler gradients, more memory |
 | Warmup/Decay | Ramp LR up, then cosine decay down |
 
 ### Loss Landscape
-```
+
+```text
    ╱╲      ╱╲           ← local minima trap SGD
   ╱  ╲    ╱  ╲   ╱╲
  ╱    ╲__╱    ╲_╱  ╲___ ← global minimum (rarely reached)
@@ -438,34 +454,36 @@ SGD ── + momentum ── + adaptive LR (RMSProp/AdaGrad)
 
 These four tricks are what let you stack 72 layers without collapse.
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │  STABILITY = Init + Norm + Residuals + Reg  │
 └─────────────────────────────────────────────┘
 ```
 
 ### 🎲 Initialization
+
 | Activation | Use this init | Year |
-|---|---|---|
+| --- | --- | --- |
 | ReLU | **He / Kaiming** — `stdDev = √(2/n_in)` | 2015 |
 | Tanh/Sigmoid | **Xavier / Glorot** — `stdDev = √(2/(n_in+n_out))` | 2010 |
 
 > Wrong init → activations explode 💥 or collapse to zero 🕳️ over many layers.
 
 Distributions cheat sheet:
+
 - **Uniform**: flat — equal chance everywhere
 - **Normal**: bell — 68/95/99.7 within 1/2/3 SD
 
 ### 🧮 Normalization
 
-```
+```text
    x ──► (x - mean) / √(var + ε) ──► γx + β
          ↑                          ↑
     center+scale            learned shift+scale
 ```
 
 | Type | Normalizes across | Used in |
-|---|---|---|
+| --- | --- | --- |
 | **BatchNorm** | batch dim | CNNs |
 | **LayerNorm** | feature dim per token | original Transformer |
 | **RMSNorm** | scales only (no centering) | **modern LLMs** ✅ |
@@ -474,16 +492,19 @@ Distributions cheat sheet:
 Modern recipe: **Pre-RMSNorm**.
 
 ### 🔗 Residuals
-```
+
+```text
    x ──┬──► [sublayer] ──► +  ──► out
        └─────── skip ──────┘
 ```
+
 Adds input back to output. Smooths loss landscape, lets gradients flow → enables 72+ layers.
 Variants: additive, scaled, gated, concat, attention-based.
 
 ### 🛡️ Regularization
+
 | Technique | What | LLM today? |
-|---|---|---|
+| --- | --- | --- |
 | **Dropout** (10%) | randomly zero neurons | ❌ rare (single-pass training) |
 | **Gradient Clip** (max 1.0) | cap gradient norm | ✅ yes |
 | **Weight Decay** (10%) | penalize big weights | ✅ yes (in AdamW) |
@@ -492,7 +513,7 @@ Variants: additive, scaled, gated, concat, attention-based.
 
 ## 4️⃣ Text → Numbers Pipeline
 
-```
+```text
 "Hello world"
      │
      ▼   tokenizer (BPE)
@@ -507,8 +528,9 @@ context-aware vectors → into transformer
 ```
 
 ### 🔤 Tokenizers
+
 | Type | Granularity | Vocab | Use |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Character | per char | tiny | inefficient |
 | Word | per word | huge | OOV problems |
 | **BPE** | subword (merge frequent pairs) | ~50K | **GPT-2/3/4** ✅ |
@@ -518,23 +540,89 @@ context-aware vectors → into transformer
 GPT-2 vocab: **50,257** tokens. `tiktoken` is OpenAI's library.
 
 ### 🧬 Embeddings
+
 - Each token → vector in **768-dim** (GPT-2) up to 12K+ (frontier).
 - **PCA** lets you visualize ~semantic clusters in 2D.
 - **Tied embeddings**: input embedding matrix == output (unembedding) matrix.
 
-### 📍 Positional Encoding
-| Type | How |
-|---|---|
-| **Absolute Sinusoidal** | fixed sin/cos per position (original Transformer) |
-| **RoPE** | rotates Q/K vectors — encodes *relative* position (modern LLMs) ✅ |
+### 📍 Positional Encoding — from one-hot to sinusoidal to RoPE
+
+**The problem:** attention has no built-in sense of order — `Q·Kᵀ` treats tokens as a *set*, not a *sequence*. "Dog bites man" and "man bites dog" would look identical without positional info. We need to inject "where am I in the sentence" into each token vector.
+
+#### Step 1 — One-hot position (naive, doesn't work)
+
+```text
+   pos 0: [1,0,0,0,0]
+   pos 1: [0,1,0,0,0]
+   pos 2: [0,0,1,0,0]
+   ...
+```
+
+Problems: vector size = max sequence length (huge, wasteful), no notion of "position 5 is close to position 6" (all one-hot vectors are equally dissimilar), and can't generalize past the max length seen in training.
+
+#### Step 2 — Learned absolute embedding (better, still limited)
+
+Just like token embeddings, learn a lookup table: `pos_embedding[0], pos_embedding[1], ...`. Compact and trainable, but still **can't extrapolate** beyond the longest position seen in training (position 5000 has literally no learned vector if you only trained up to 4096).
+
+#### Step 3 — Sinusoidal (the original Transformer paper's fix)
+
+**Intuition:** instead of learning a table, *compute* a unique fixed pattern per position using sine/cosine waves of different frequencies — like a clock with many hands spinning at different speeds. Position 0 and position 1 have hands in slightly different spots; position 1000 has a totally different (but deterministic) combination.
+
+```text
+   PE(pos, 2i)   = sin(pos / 10000^(2i/d))
+   PE(pos, 2i+1) = cos(pos / 10000^(2i/d))
+```
+
+```text
+   dim:    0    1    2    3    4    5   ...
+   pos=0: sin  cos  sin  cos  sin  cos  ← fast-spinning hand (dim 0-1)
+   pos=1: sin  cos  sin  cos  sin  cos     slower hand (dim 2-3)
+   pos=2: sin  cos  sin  cos  sin  cos        slowest hand (dim d-2,d-1)
+          └─┬─┘└─┬─┘
+         alternating pairs, each pair a different frequency
+```
+
+**Why sin/cos specifically?**
+
+- **Bounded** (always between -1 and 1) — doesn't blow up for long sequences, unlike raw position numbers (0, 1, 2, ... 10000).
+- **Unique per position** — the combination across all frequencies never repeats.
+- **Smooth/continuous** — nearby positions get similar vectors (unlike one-hot), so the model can generalize "close in position."
+- **Extrapolates** — since it's a formula (not a lookup table), you can compute PE for a position never seen in training.
+- Fixed, **not learned** — zero extra parameters.
+
+#### Step 4 — RoPE (Rotary Position Embedding) — what SOTA models use today
+
+**Key shift in idea:** instead of *adding* a position vector to the token embedding (steps 1-3), RoPE **rotates** the Query and Key vectors by an angle proportional to their position, right before the attention dot-product.
+
+```text
+   token embedding "cat" at position 5   ──rotate by θ·5──►  rotated Q/K vector
+   token embedding "cat" at position 9   ──rotate by θ·9──►  rotated Q/K vector
+```
+
+**Why rotation instead of addition?** When you dot-product two rotated vectors (`Q·Kᵀ` in attention), the *relative* rotation angle survives the math — the result depends only on **(position_i − position_j)**, not on the absolute positions. This means:
+
+- Attention naturally learns "how far apart" two tokens are, not "which absolute slots" they occupy.
+- Generalizes better to sequence lengths far beyond training (better long-context extrapolation).
+- No separate position vector to store/add — folded directly into Q/K computation.
+
+| Method | Encodes | Learned? | Extrapolates? | Used by |
+| --- | --- | --- | --- | --- |
+| One-hot | absolute | ❌ no | ❌ no | toy example only |
+| Learned absolute | absolute | ✅ yes | ❌ no | early BERT/GPT-2 |
+| Sinusoidal | absolute | ❌ no (fixed formula) | ⚠️ somewhat | original Transformer (2017) |
+| **RoPE** | **relative** | ❌ no (fixed formula, applied to Q/K) | ✅ **best** | **Llama, GPT-NeoX, modern LLMs** ✅ |
+
+> **Keep this:** Positional encoding evolved from "stamp a position label on each token" (one-hot → learned → sinusoidal) to "bake relative distance directly into the attention math" (RoPE). RoPE won because relative position generalizes better and scales to longer contexts.
 
 ### 🎰 SoftMax — logits → probabilities
-```
+
+```text
    logits        exp(x)          softmax (sum=1)
    [2.0]   ──►   [7.39]   ──►   [0.66]  ◄── winner
    [1.0]         [2.72]         [0.24]
    [0.1]         [1.10]         [0.10]
 ```
+
 `softmax(x)ᵢ = exp(xᵢ) / Σ exp(xⱼ)` — winner-take-most.
 
 ---
@@ -550,14 +638,14 @@ Before the attention block makes sense, you need to know what Q/K/V actually *ar
 Imagine each token in the sentence is a person at a library:
 
 | Lens | Role | Plain English |
-|---|---|---|
+| --- | --- | --- |
 | **Q (Query)** | "What am I looking for?" | The thing this token wants to find in others |
 | **K (Key)** | "What am I about?" | A label describing this token, used for matching |
 | **V (Value)** | "What do I actually contain?" | The content this token will share if attended to |
 
 Attention then asks: **"For each token's Query, which other tokens' Keys match best? Pull their Values."**
 
-```
+```text
    token i's Query  ──► compared against ──► every token's Key  ──► gives weights
                                                                         │
                                                                         ▼
@@ -571,7 +659,7 @@ Attention then asks: **"For each token's Query, which other tokens' Keys match b
 
 Same input vector `x`, three different learned weight matrices:
 
-```
+```text
                     Input X (one row per token)
                     shape: [seq_len, d_model]
                               │
@@ -587,16 +675,18 @@ Same input vector `x`, three different learned weight matrices:
 ```
 
 So when the slide says:
-```
+
+```text
    Query = Input · Query_Weights
    Key   = Input · Key_Weights
    Value = Input · Value_Weights
 ```
+
 that's literally three matrix multiplies — three "hidden layers" in MLP language (linear, no activation).
 
 #### Concrete dimensional example (GPT-2 small, single head)
 
-```
+```text
    X: [seq_len=10, d_model=768]
    W_Q, W_K, W_V: each [768, 768]    ← learned parameters
 
@@ -610,6 +700,7 @@ For **multi-head**, that 768 gets split into `n_heads=12` heads of `d_head=64` e
 #### Why three different matrices, not one?
 
 Each weight matrix is **learned to extract a different aspect** of the same token:
+
 - `W_Q` learns "what does this token need from context?"
 - `W_K` learns "what's worth advertising about this token?"
 - `W_V` learns "what info does this token carry?"
@@ -618,7 +709,7 @@ If they were the same matrix, every token's "what I want" would equal "what I am
 
 #### Tiny worked example
 
-```
+```text
    "the cat sat"  →  3 tokens, each becomes a vector of size d=4 (toy)
    X = [[1, 0, 1, 0],   ← "the"
         [0, 2, 0, 1],   ← "cat"
@@ -636,17 +727,19 @@ Q, K, V each end up as `[3 tokens × 4 dims]` — same shape as input, but each 
 
 #### How Q, K, V get used (preview of next subsection)
 
-```
+```text
    scores = Q · Kᵀ            ← every Query dotted with every Key  → [seq, seq]
    weights = softmax(scores / √d_head)
    output = weights · V       ← weighted blend of Values
 ```
+
 That `Q·Kᵀ` matrix is the famous "attention pattern" you see visualized as a heatmap.
 
 > **Keep this:** Q, K, V are three learned linear projections of the same input. Q says what each token *wants*, K says what each token *offers*, V is what gets *shared*. Attention is matching Q against K, then pulling V accordingly.
 
 ### The Attention block
-```
+
+```text
                 Input X
                   │
         ┌─────────┼─────────┐
@@ -670,19 +763,23 @@ That `Q·Kᵀ` matrix is the famous "attention pattern" you see visualized as a 
 ```
 
 ### Multi-Head Causal Attention
+
 Run N attention "heads" in parallel → concat → project.
+
 - Different heads learn different things (punctuation, prev-word, syntax, etc.)
 
 ### Variants (KV-cache savings)
+
 | | Q heads | K/V heads | Used by |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **MHA** | N | N | original |
 | **GQA** | N | N/g (grouped) | Llama-2/3 |
 | **MQA** | N | 1 | PaLM |
 | **MLA** | N | low-rank latent | DeepSeek |
 
 ### Full Transformer Block (×12 in GPT-2, ×80+ in frontier)
-```
+
+```text
    ┌─────────────────────────────┐
    │   x                         │
    │   │                         │
@@ -704,7 +801,7 @@ End of stack: `RMSNorm → unembedding → softmax → next-token probs`.
 
 The FFN inside every transformer block is **a 2-layer MLP applied per token**. This is where most of the model's parameters and "knowledge" live.
 
-```
+```text
    per-token vector
    x: [d_model]                                                  
        │                                                         
@@ -721,7 +818,7 @@ The FFN inside every transformer block is **a 2-layer MLP applied per token**. T
 #### Dimensional caveat — the **expand-then-project** pattern
 
 | Layer | Real name | Input dim | Output dim |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **GPT-2 small** | FFN up-proj | 768 | **3072** (4×) |
 | | activation (GELU) | 3072 | 3072 (no change) |
 | | FFN down-proj | 3072 | 768 |
@@ -736,15 +833,18 @@ The FFN inside every transformer block is **a 2-layer MLP applied per token**. T
 Vanilla FFN: `out = (ReLU(x · W_up)) · W_down`  → 2 matrices.
 
 SwiGLU FFN (Llama, modern LLMs):
-```
+
+```text
    out = ( Swish(x · W_gate)  ⊙  (x · W_up) ) · W_down
                 ↑                    ↑
            "what to keep"      "what to pass"
                   └── elementwise multiply ──┘
 ```
+
 Three matrices: a gate, an up-projection, and a down-projection. The gate **learns which features to let through** at each token — sharper, more selective than plain ReLU/GELU.
 
 #### Param count check (per layer, GPT-2 small)
+
 - Attention (Q,K,V,O proj): `4 · 768² ≈ 2.36M`
 - FFN: `2 · 768 · 3072 ≈ 4.72M`  ← **~2× attention**
 - Per block total: ~7M; ×12 blocks = ~85M of the 124M total.
@@ -755,7 +855,7 @@ Three matrices: a gate, an up-projection, and a down-projection. The gate **lear
 
 ## 6️⃣ LLM Lifecycle
 
-```
+```text
   📚 PRETRAIN ──► 🎯 FINE-TUNE ──► 🤝 RLHF ──► 📊 EVAL ──► 🚀 DEPLOY
    (trillions      (instructions    (align with    (perplexity,
     of tokens,      via LoRA/        human         Lambada,         ┌──► sample
@@ -766,6 +866,7 @@ Three matrices: a gate, an up-projection, and a down-projection. The gate **lear
 ```
 
 ### 📚 Pretraining
+
 - **Objective**: next-token prediction with cross-entropy.
 - **Scaling Laws** (Chinchilla): performance ∝ f(data, params, compute). Balance all three.
 
@@ -773,7 +874,7 @@ Three matrices: a gate, an up-projection, and a down-projection. The gate **lear
 
 The workshop's claim is **correct**, and there's a 2025 paper literally titled *"Drop Dropout on Single-Epoch Language Model Pretraining"* confirming it empirically.
 
-```
+```text
    Old era (≤ ~2019)              Modern era (Llama-2/3, GPT-3+)
    ────────────────                ──────────────────────────────
    • Small dataset                 • Internet-scale corpus (trillions of tokens)
@@ -787,7 +888,7 @@ The workshop's claim is **correct**, and there's a 2025 paper literally titled *
 **Why it stopped helping:** with web-scale data and a single epoch, **the model never sees the same token twice**, so there's nothing to memorize. Dropout just adds noise that throws away useful signal — equivalent to training on less data.
 
 | Era | Model | Dropout? |
-|---|---|---|
+| --- | --- | --- |
 | 2018 | GPT-2 | 10% (everywhere) |
 | 2019 | BERT | 10% |
 | 2020 | GPT-3 | small / phasing out |
@@ -797,6 +898,7 @@ The workshop's claim is **correct**, and there's a 2025 paper literally titled *
 The 2025 ACL paper tested Pythia 160M/1.4B with varying dropout rates on single-epoch pretraining and found **downstream performance is consistently better with dropout = 0** across language modeling, BLiMP, SQuAD, and MNLI. Models without dropout were also easier to model-edit.
 
 **Where dropout still appears:**
+
 - 🎯 **Fine-tuning** (small datasets, multi-epoch) — dropout makes a comeback
 - 🔧 **LoRA adapters** — small param count, multi-epoch → dropout helps
 - 🧪 **Smaller research models** trained for many epochs
@@ -804,20 +906,24 @@ The 2025 ACL paper tested Pythia 160M/1.4B with varying dropout rates on single-
 > **Keep this:** Dropout is a *small-data, multi-epoch* tool. Pretraining a frontier LLM is the opposite regime (huge-data, single-epoch), so dropout is gone. Other regularization survives: **gradient clipping** and **weight decay** still used.
 
 ### 🎯 Fine-tuning
+
 | Method | What | Cost |
-|---|---|---|
+| --- | --- | --- |
 | **Full FT** | update all weights | 💰💰💰 |
 | **LoRA** | low-rank adapter matrices | 💰 |
 | **QLoRA** | LoRA on quantized base | 🪙 |
 
 ### 🤝 RLHF (alignment)
-```
+
+```text
   prompt ──► model ──► response A
                   └──► response B   ──► human picks ──► reward model ──► PPO/DPO
 ```
+
 Reward signal teaches the model human preferences.
 
 ### 📏 Evaluation
+
 - **Perplexity**: exp(loss) — lower is better
 - **Lambada / HellaSwag / MMLU**: benchmark suites
 - **Task-specific**: code, math, reasoning
@@ -826,7 +932,7 @@ Reward signal teaches the model human preferences.
 
 **Autoregressive** = each output token is predicted from **all previous tokens** (its own past outputs included). The model generates **one token at a time**, feeds it back as input, and repeats. "Auto" = self, "regressive" = predicting from prior values.
 
-```
+```text
   step 1:  "The cat"                          ─► model ─► "sat"
   step 2:  "The cat sat"                      ─► model ─► "on"
   step 3:  "The cat sat on"                   ─► model ─► "the"
@@ -837,7 +943,7 @@ Reward signal teaches the model human preferences.
 
 Mathematically, the model factorizes a sentence's probability as a chain:
 
-```
+```text
    P(x₁, x₂, ..., xₙ) = P(x₁) · P(x₂|x₁) · P(x₃|x₁,x₂) · ... · P(xₙ|x₁..xₙ₋₁)
 ```
 
@@ -846,7 +952,7 @@ Each forward pass produces `P(next | everything-so-far)`; sampling picks one tok
 #### Why it matters
 
 | Concept | Connection |
-|---|---|
+| --- | --- |
 | **Causal mask in attention** | Forces token *t* to only see tokens *≤ t* — this is what makes the model *autoregressive by construction*, both at training and inference |
 | **Next-token prediction loss** | Pretraining objective is literally "predict xₜ from x₍<ₜ₎" for every position in parallel |
 | **KV cache** | Since past tokens never change, we cache their K and V tensors — that's why GQA/MQA matter for inference speed |
@@ -854,6 +960,7 @@ Each forward pass produces `P(next | everything-so-far)`; sampling picks one tok
 | **Sampling knobs apply per step** | Temperature, top-k, top-p shape the distribution at *each* token, not the whole sequence |
 
 #### Contrast: autoregressive vs. other paradigms
+
 - **Autoregressive (GPT, Llama)** — left-to-right, one token at a time. Great for open-ended generation.
 - **Masked (BERT)** — predict missing tokens with full bidirectional context. Great for understanding, not generation.
 - **Diffusion / non-autoregressive** — generate all tokens in parallel via iterative denoising. Faster but lower quality (still research).
@@ -861,21 +968,23 @@ Each forward pass produces `P(next | everything-so-far)`; sampling picks one tok
 > **Keep this:** Every chatbot reply you've ever seen is a `for` loop calling the model once per token, each call conditioned on the growing prefix. The "streaming" UX you see is just that loop yielding tokens as they're sampled.
 
 ### 🎲 Sampling at inference time *(applied at every autoregressive step)*
+
 | Knob | Effect |
-|---|---|
+| --- | --- |
 | **Temperature** | <1 = sharper (deterministic), >1 = wilder |
 | **Top-K** | sample from K highest-prob tokens |
 | **Top-P (nucleus)** | sample from smallest set whose cumulative prob ≥ P |
 
-```
+```text
   greedy   ─► always argmax       (boring, repetitive)
   temp=0.7 ─► softens distribution (balanced)
   top-p=0.9─► chops the tail        (diverse but safe)
 ```
 
 ### 💾 Model File Formats
+
 | Format | Notes |
-|---|---|
+| --- | --- |
 | `.pth` | PyTorch native (⚠️ pickle = unsafe) |
 | `.safetensors` | safe, fast (HuggingFace default) ✅ |
 | `.onnx` | cross-framework |
@@ -896,7 +1005,7 @@ Each forward pass produces `P(next | everything-so-far)`; sampling picks one tok
 
 ## 🧠 Mind Map (compressed)
 
-```
+```text
 LLM
 ├── Architecture
 │   ├── Tokenizer (BPE, ~50K vocab)
