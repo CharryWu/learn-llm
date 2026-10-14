@@ -236,7 +236,7 @@ $k\_dim = v\_dim = d\_model // num\_heads$
 
 这里提供一个Mutihead Attention的python实现方法, 它可以快速帮助我们了解一个[attention层](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=attention%E5%B1%82&zhida_source=entity)的计算过程, 同时可以很方便地打出中间步骤. Tensorflow和Pytorch的源码里有更为工业化的实现方式, 包加速运算, 引入[bias](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=bias&zhida_source=entity), 自定义维度等等.
 
-```python3
+```py
 import numpy as np
 import torch
 from torch import Tensor

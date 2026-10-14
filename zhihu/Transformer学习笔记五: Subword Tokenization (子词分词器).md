@@ -67,7 +67,7 @@ date: 2026-10-14
 
 我们用HuggingFace中提供的Bert分词器做一个例子, 在Bert中使用分词算法是WordPiece (在这篇笔记里会介绍).
 
-```python3
+```py
 >>> from transformers import BertTokenizer
 >>> tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 >>> sequence = "A Titan RTX has 24GB of VRAM"
@@ -81,7 +81,7 @@ date: 2026-10-14
 
 我们也可以一步到位, 把上面的文字token转变为在词表中的索引, 其中101, 102是Bert中输入的特殊标志符号`CLS`和`SEP`.
 
-```text
+```pycon
 >>> inputs = tokenizer(sequence)
 >>> encoded_sequence = inputs["input_ids"]
 >>> print(encoded_sequence)
