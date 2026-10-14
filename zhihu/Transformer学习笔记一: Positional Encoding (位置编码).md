@@ -54,7 +54,7 @@ date: 2026-10-14
   
 在transformer的encoder和decoder的输入层中, 使用了Positional Encoding, 使得最终的输入满足:
 
-$input = input\_embedding + positional\_encoding $  
+$input = input\_embedding + positional\_encoding$  
   
 这里, input\_embedding是通过常规embedding层, 将每一个token的向量维度从vocab\_size映射到d\_model, 由于是相加关系, 自然而然地, 这里的positional\_encoding也是一个d\_model维度的向量. (在原论文里, d\_model = 512)  
   
@@ -123,7 +123,7 @@ $input = input\_embedding + positional\_encoding $
 
 $PE_t = [sin(\frac{1}{2^0}t),sin(\frac{1}{2^1}t)...,sin(\frac{1}{2^{i-1}}t), ...,sin(\frac{1}{2^{d_{model}-1}}t)]\\$  
   
-结合下图, 来理解一下这样设计的含义. 图中每一行表示一个 $PE_t$ , 每一列表示 $PE_t$ 中的第i个元素. 旋钮用于调整精度, 越往右边的旋钮, 需要调整的精度越大, 因此指针移动的步伐越小. 每一排的旋钮都在上一排的基础上进行调整 (函数中t的作用). 通过频率 $\frac{1}{2^{i-1}} $ 来控制sin函数的波长, 频率不断减小, 则波长不断变大, 此时sin函数对t的变动越不敏感, 以此来达到越向右的旋钮, 指针移动步伐越小的目的. 这也类似于二进制编码, 每一位上都是0和1的交互, 越往低位走 (越往左边走), 交互的频率越慢.  
+结合下图, 来理解一下这样设计的含义. 图中每一行表示一个 $PE_t$ , 每一列表示 $PE_t$ 中的第i个元素. 旋钮用于调整精度, 越往右边的旋钮, 需要调整的精度越大, 因此指针移动的步伐越小. 每一排的旋钮都在上一排的基础上进行调整 (函数中t的作用). 通过频率 $\frac{1}{2^{i-1}}$ 来控制sin函数的波长, 频率不断减小, 则波长不断变大, 此时sin函数对t的变动越不敏感, 以此来达到越向右的旋钮, 指针移动步伐越小的目的. 这也类似于二进制编码, 每一位上都是0和1的交互, 越往低位走 (越往左边走), 交互的频率越慢.  
   
 
 ![图片](images/e00f72c5405e.jpg)
@@ -164,13 +164,13 @@ $PE_t = [sin(w_0t),sin(w_1t)...,sin(w_{i-1}t), ...,sin(w_{d_{model}-1}t)]\\$
 那现在我们对位置向量再提出一个要求, **不同的位置向量是可以通过线性转换得到的**. 这样, 我们不仅能表示一个token的绝对位置, 还可以表示一个token的相对位置, 即我们想要:
 
   
-$PE_{t+\bigtriangleup t} = T_{\bigtriangleup t} * PE_{t} $
+$PE_{t+\bigtriangleup t} = T_{\bigtriangleup t} * PE_{t}$
 
   
 这里, T表示一个线性变换矩阵. 观察这个目标式子, 联想到在向量空间中一种常用的线形变换 - - 旋转. 在这里, 我们将t想象为一个角度, 那么 $\bigtriangleup t$就是其旋转的角度, 则上面的式子可以进一步写成:
 
   
-$\begin{pmatrix} \sin(t + \bigtriangleup t)\\ \cos((t + \bigtriangleup t) \end{pmatrix}=\begin{pmatrix} \cos\bigtriangleup t&\sin\bigtriangleup t \\ -\sin\bigtriangleup t&\cos\bigtriangleup t \end{pmatrix}\begin{pmatrix} \sin t\\ \cos t \end{pmatrix} $
+$\begin{pmatrix} \sin(t + \bigtriangleup t)\\ \cos((t + \bigtriangleup t) \end{pmatrix}=\begin{pmatrix} \cos\bigtriangleup t&\sin\bigtriangleup t \\ -\sin\bigtriangleup t&\cos\bigtriangleup t \end{pmatrix}\begin{pmatrix} \sin t\\ \cos t \end{pmatrix}$
 
   
 有了这个构想, 我们就可以把原来元素全都是sin函数的 $PE_t$ 做一个替换, 我们让位置两两一组, 分别用sin和cos的函数对来表示它们, 则现在我们有:
@@ -179,7 +179,7 @@ $\begin{pmatrix} \sin(t + \bigtriangleup t)\\ \cos((t + \bigtriangleup t) \end{p
 $PE_t = [sin(w_0t),cos(w_0t), sin(w_1t),cos(w_1t),...,sin(w_{\frac{d_{model}}{2}-1}t), cos(w_{\frac{d_{model}}{2}-1}t)]\\$
 
   
-在这样的表示下, 我们可以很容易用一个线性变换, 把 $PE_t$ 转变为 $PE_{t + \bigtriangleup t} $ :
+在这样的表示下, 我们可以很容易用一个线性变换, 把 $PE_t$ 转变为 $PE_{t + \bigtriangleup t}$ :
 
   
 
@@ -233,7 +233,7 @@ $i = 0,1,2,3,...,\frac{d_{model}}{2} -1$
 让我们再深入探究一下位置编码的性质.
 
   
-**(1) 性质一: 两个位置编码的[点积](https://zhida.zhihu.com/search?content_id=189127040&content_type=Article&match_order=1&q=%E7%82%B9%E7%A7%AF&zhida_source=entity)(dot product)仅取决于偏移量** $\bigtriangleup t$ **, 也即两个位置编码的点积可以反应出两个位置编码间的距离. **
+**(1) 性质一: 两个位置编码的[点积](https://zhida.zhihu.com/search?content_id=189127040&content_type=Article&match_order=1&q=%E7%82%B9%E7%A7%AF&zhida_source=entity)(dot product)仅取决于偏移量** $\bigtriangleup t$ **, 也即两个位置编码的点积可以反应出两个位置编码间的距离.**
 
   
 证明:  
@@ -265,7 +265,7 @@ $PE_t^TW_Q^TW_KPE_{t+k}$
 
   
   
-绿色和黄色即是 $W_1$ 和 $W_2$ 的结果. 可以发现, 进入attention层之后, 内积的**距离意识(distance-aware)**的模式也遭到了破坏. 更详细的细节, 可以参见复旦大学这一篇用transformer做NER的[论文](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1911.04474.pdf)中.  
+绿色和黄色即是 $W_1$ 和 $W_2$ 的结果. 可以发现, 进入attention层之后, 内积的**距离意识(distance-aware)** 的模式也遭到了破坏. 更详细的细节, 可以参见复旦大学这一篇用transformer做NER的[论文](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1911.04474.pdf)中.  
   
 在Transformer的论文中, 比较了用positional encoding和learnable position embedding(让模型自己学[位置参数](https://zhida.zhihu.com/search?content_id=189127040&content_type=Article&match_order=1&q=%E4%BD%8D%E7%BD%AE%E5%8F%82%E6%95%B0&zhida_source=entity)) 两种方法, 得到的结论是两种方法对模型最终的衡量指标差别不大. 不过在后面的BERT中, 已经改成用learnable position embedding的方法了, 也许是因为positional encoding在进attention层后一些优异性质消失的原因 (猜想). Positional encoding有一些想象+实验+论证的意味, 而编码的方式也不只这一种, 比如把sin和cos换个位置, 依然可以用来编码. 关于positional encoding, 我也还在持续探索中.
 

@@ -60,10 +60,10 @@ date: 2026-10-14
 
 分词器一般包含以下几个部分:
 
-- **Trainer (分词训练器/算法) **: 给定训练数据, 用Trainer封装的[分词算法](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=%E5%88%86%E8%AF%8D%E7%AE%97%E6%B3%95&zhida_source=entity), 生成词表
-- **Vocabulary (词表) **: 词表是分词的标准. 基本上每个语言任务都需要维护一个词表, 词表可以是根据当前训练数据生成的, 也可以直接加载前人预训练好的词表.
-- **Encoder (编码器) **: 拥有词表后, 给定语料, 编码器把语料按词表拆分token, 并记录token在词表中的索引, 拥有该索引则可将token表示成one-[hot向量](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=hot%E5%90%91%E9%87%8F&zhida_source=entity)入模, 再做后续的[embedding](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=embedding&zhida_source=entity)等优化操作.
-- **Decoder (解码器) **: 给定一串索引, 将索引还原成最初的语料形式.
+- **Trainer (分词训练器/算法)**: 给定训练数据, 用Trainer封装的[分词算法](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=%E5%88%86%E8%AF%8D%E7%AE%97%E6%B3%95&zhida_source=entity), 生成词表
+- **Vocabulary (词表)**: 词表是分词的标准. 基本上每个语言任务都需要维护一个词表, 词表可以是根据当前训练数据生成的, 也可以直接加载前人预训练好的词表.
+- **Encoder (编码器)**: 拥有词表后, 给定语料, 编码器把语料按词表拆分token, 并记录token在词表中的索引, 拥有该索引则可将token表示成one-[hot向量](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=hot%E5%90%91%E9%87%8F&zhida_source=entity)入模, 再做后续的[embedding](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=embedding&zhida_source=entity)等优化操作.
+- **Decoder (解码器)**: 给定一串索引, 将索引还原成最初的语料形式.
 
 我们用HuggingFace中提供的Bert分词器做一个例子, 在Bert中使用分词算法是WordPiece (在这篇笔记里会介绍).
 
@@ -136,7 +136,7 @@ Transformer中, 在对[WMT](https://zhida.zhihu.com/search?content_id=190502949&
 
 沿用Sennrich et al. 2015在论文中给出的例子`'low</w>':5 'lower</w>':2 'newest</w>':6 'widest</w>':3`, 这里展示一个demo来看下算法运作的流程:
 
-```text
+```py
 import re, collections
 
 def get_stats(vocab: dict)->dict:
@@ -322,9 +322,9 @@ Encoder和Decoder的方法和BPE相似, 因此这里略去. 同时也注意到, 
 - 初始化一个[大词表](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=3&q=%E5%A4%A7%E8%AF%8D%E8%A1%A8&zhida_source=entity). 这个词表可以是语料中所有字符 + 常见的子字符串, 也可以用BPE进行初始化.
 - 基于该词表, 对所有语料的所有子词划分结果做一个总体评价. 具体的实现方式是:
 
-设语料库中有 $|D|$ 条语料. $X^{(s)}$ 表示语料库中的第 $s$ 条语料. $\mathcal S(X^{(s)})$ 表示语料 $X^{(s)}$ 所有划分结果的集合. $\vec x$ 表示其中一种划分结果, 满足 $\vec x \in \mathcal S(X^{(s)})$ . 同时, 我们**假设词表中每一个子词相互独立 (Unigram Language Model的重要前提). **则我们的**评价标准** $\mathcal L$ 定义为: 预料库中的所有语料的所有分词组合形成的概率相加, 即:
+设语料库中有 $|D|$ 条语料. $X^{(s)}$ 表示语料库中的第 $s$ 条语料. $\mathcal S(X^{(s)})$ 表示语料 $X^{(s)}$ 所有划分结果的集合. $\vec x$ 表示其中一种划分结果, 满足 $\vec x \in \mathcal S(X^{(s)})$ . 同时, 我们**假设词表中每一个子词相互独立 (Unigram Language Model的重要前提).** 则我们的**评价标准** $\mathcal L$ 定义为: 预料库中的所有语料的所有分词组合形成的概率相加, 即:
 
-$\mathcal L = \sum_{s=1}^{|D|}log(P(X^{(s)})) = \sum_{s=1}^{|D|}log(\sum_{\vec x\in\mathcal S(X^{(s)})}P(\vec x) ) $
+$\mathcal L = \sum_{s=1}^{|D|}log(P(X^{(s)})) = \sum_{s=1}^{|D|}log(\sum_{\vec x\in\mathcal S(X^{(s)})}P(\vec x) )$
 
   
 其中, 假设某个划分结果 $\vec x$ 中含有m个子词, 即 $\vec x = (x_1, x_2, ..., x_m)$ , 那么有:
@@ -344,11 +344,11 @@ $P(\vec x) = \prod_{i=1}^{m} P(x_i)$
 5.2 ULM的编码步骤 (Encoder)
 
   
-编码步骤里, 将基于最终生成的词表, 找到一个语料最优的划分方式, 设这个最有的划分方式为$$\\vec x^\*$$, 则我们的目的其实是:
+编码步骤里, 将基于最终生成的词表, 找到一个语料最优的划分方式, 设这个最有的划分方式为 $\vec x^*$ , 则我们的目的其实是:
 
   
 $\vec x^* = argmax_{\vec x \in \mathcal S(X^{(s)})}P(\vec x)$
 
   
-根据训练阶段保留下来的 $P(x_i)$ , 我们可以用**[维特比算法](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=%E7%BB%B4%E7%89%B9%E6%AF%94%E7%AE%97%E6%B3%95&zhida_source=entity)(viterbi)**来得到最终最优的划分.  
+根据训练阶段保留下来的 $P(x_i)$ , 我们可以用 **[维特比算法](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=%E7%BB%B4%E7%89%B9%E6%AF%94%E7%AE%97%E6%B3%95&zhida_source=entity)(viterbi)** 来得到最终最优的划分.  
 解码步骤和前面两个分词算法一样, 这里就不再提了.

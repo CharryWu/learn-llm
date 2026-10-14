@@ -21,7 +21,7 @@ date: 2026-10-14
 > [经历] 在赛博坦星球时, 作为一个理性的理想主义者而抑郁不得志. 最终在星云找到了自己的世外桃源, 潜心做开发研究工作, 主要成就是人机互换领域的突破.  
 > "再强大的暴君也无法抑制思想的自由."
 
-在Transformer中, 数据过Attention层和[FFN层](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=FFN%E5%B1%82&zhida_source=entity)后, 都会经过一个**Add & Norm**处理. 其中, Add为**residule block (残差模块) **, 数据在这里进行**residule connection (残差连接) **. 残差连接的思想最经典的代表就是2015年被提出的[ResNet](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1512.03385.pdf), 这个用于解决深层网络训练问题的模型最早被用于图像任务处理上, 现在已经成为一种普适性的深度学习方法. 这篇笔记将对此进行解析, 笔记内容包括:
+在Transformer中, 数据过Attention层和[FFN层](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=FFN%E5%B1%82&zhida_source=entity)后, 都会经过一个**Add & Norm**处理. 其中, Add为**residule block (残差模块)**, 数据在这里进行**residule connection (残差连接)**. 残差连接的思想最经典的代表就是2015年被提出的[ResNet](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1512.03385.pdf), 这个用于解决深层网络训练问题的模型最早被用于图像任务处理上, 现在已经成为一种普适性的深度学习方法. 这篇笔记将对此进行解析, 笔记内容包括:
 
 一, 背景
 
@@ -59,13 +59,13 @@ date: 2026-10-14
 
 如图所示的[三层神经网络](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=%E4%B8%89%E5%B1%82%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C&zhida_source=entity), 每一层的线性层和非线性层可以表示为:  
   
-$\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} (线性变化层) \\ A^{[L]} &= g^{[L]}(Z^{[L]}) (非线性变化/激活函数层) \end{aligned}$  
+$\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} \text{ (线性变化层)} \\ A^{[L]} &= g^{[L]}(Z^{[L]}) \text{ (非线性变化/激活函数层)} \end{aligned}$  
   
 假设现在要计算第一层 $W^{[1]}$ 的梯度, 那么根据[链式法则](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=%E9%93%BE%E5%BC%8F%E6%B3%95%E5%88%99&zhida_source=entity), 有:  
   
 $\begin{aligned} \frac{\partial LOSS}{\partial W^{[1]}} & = \frac{\partial LOSS}{\partial A^{[3]}}\frac{\partial A^{[3]}}{\partial Z^{[3]}}\frac{\partial Z^{[3]}}{\partial A^{[2]}}\frac{\partial A^{[2]}}{\partial Z^{[2]}}\frac{\partial Z^{[2]}}{\partial A^{[1]}}\frac{\partial A^{[1]}}{\partial Z^{[1]}}\frac{\partial Z^{[1]}}{\partial W^{[1]}}\\ & = \frac{\partial LOSS}{\partial A^{[3]}}{g^{[3]}}'W^{[3]}{g^{[2]}}'W^{[2]}{g^{[1]}}'\frac{\partial Z^{[1]}}{\partial W^{[1]}} \end{aligned}$  
   
-如果在神经网络中, 多层都满足 ${g^{[L]}}'W^{[L]} > 1$ , 则越往下的网络层的梯度越大, 这就造成了**梯度爆炸**的问题. 反之, 若多层都满足 ${g^{[L]}}'W^{[L]} < 1$ , 则越往下的网络层梯度越小, 引起**梯度消失**的问题. 而在深度学习网络中, 为了让模型学到更多非线性的特征, 在激活层往往使用例如**[sigmoid](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=sigmoid&zhida_source=entity)**这样的激活函数. 对sigmoid来说, **其导数的取值范围在** $(0,\frac{1}{4} ]$ , 在层数堆叠的情况下, 更容易出现梯度消失的问题.
+如果在神经网络中, 多层都满足 ${g^{[L]}}'W^{[L]} > 1$ , 则越往下的网络层的梯度越大, 这就造成了**梯度爆炸**的问题. 反之, 若多层都满足 ${g^{[L]}}'W^{[L]} < 1$ , 则越往下的网络层梯度越小, 引起**梯度消失**的问题. 而在深度学习网络中, 为了让模型学到更多非线性的特征, 在激活层往往使用例如 **[sigmoid](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=sigmoid&zhida_source=entity)** 这样的激活函数. 对sigmoid来说, **其导数的取值范围在** $(0,\frac{1}{4} ]$ , 在层数堆叠的情况下, 更容易出现梯度消失的问题.
 
   
 面对梯度消失/爆炸的情况, 可以通过Normalization等方式解决, 使得模型最终能够收敛.  
@@ -74,7 +74,7 @@ $\begin{aligned} \frac{\partial LOSS}{\partial W^{[1]}} & = \frac{\partial LOSS}
 1.2 网络退化(Degradation)
 
   
-因为梯度消失/爆炸所导致的深层网络模型不收敛的问题, 已经得到了解决. 那么现在新的问题出现了: **在模型能够收敛的情况下, 网络越深, 模型的准确率越低, 同时, 模型的准确率先达到饱和, 此后迅速下降**. 这个情况我们称之为**[网络退化](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=3&q=%E7%BD%91%E7%BB%9C%E9%80%80%E5%8C%96&zhida_source=entity) (Degradation). **如下图, 56层网络在测试集 (右) 上的错误率比20层网络要更高, 这个现象也不是因为overfitting所引起的, 因为在训练集上, 深层网络的表现依然更差.  
+因为梯度消失/爆炸所导致的深层网络模型不收敛的问题, 已经得到了解决. 那么现在新的问题出现了: **在模型能够收敛的情况下, 网络越深, 模型的准确率越低, 同时, 模型的准确率先达到饱和, 此后迅速下降**. 这个情况我们称之为 **[网络退化](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=3&q=%E7%BD%91%E7%BB%9C%E9%80%80%E5%8C%96&zhida_source=entity) (Degradation).** 如下图, 56层网络在测试集 (右) 上的错误率比20层网络要更高, 这个现象也不是因为overfitting所引起的, 因为在训练集上, 深层网络的表现依然更差.  
 
 ![图片](images/4bd38f2b31e2.jpg)
 
@@ -96,7 +96,7 @@ $\begin{aligned} \frac{\partial LOSS}{\partial W^{[1]}} & = \frac{\partial LOSS}
 2.2 理想中的深网络表现
 
   
-理想中的深网络, 其表现不应该差于浅网络. 举一个简单的例子, 下图左边是2层的浅网络, 右边是4层的深网络, 我们只要令深网络的最后两层的输入输出相等, 那么两个网络就是等效的, 这种操作被称为**恒等映射 (Identity Mapping). **  
+理想中的深网络, 其表现不应该差于浅网络. 举一个简单的例子, 下图左边是2层的浅网络, 右边是4层的深网络, 我们只要令深网络的最后两层的输入输出相等, 那么两个网络就是等效的, 这种操作被称为**恒等映射 (Identity Mapping).**  
 
 ![图片](images/ca8b2a11c26b.jpg)
 
@@ -106,7 +106,7 @@ $\begin{aligned} \frac{\partial LOSS}{\partial W^{[1]}} & = \frac{\partial LOSS}
   
 当然, 这样完全相等的映射是一种极端情况, 更为理想的情况是, 在网络的深层, 让网络尽量逼近这样的极端情况, 使得网络在学到新东西的同时, 其输出又能逼近输入, 这样就能保证深网络的效果不会比浅网络更差.  
 
-**总结: 在网络的深层, 需要学习一种恒等映射 (Identity Mapping). **  
+**总结: 在网络的深层, 需要学习一种恒等映射 (Identity Mapping).**  
 
 ##   
 三, 实践和实验效果
@@ -139,7 +139,7 @@ ResNet核心构造
 
 $\mathcal{H}(X) = \mathcal{F}(X) + X$ (1)  
 
-$\mathcal{F}(X)$ 就被称之为**[残差函数](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=%E6%AE%8B%E5%B7%AE%E5%87%BD%E6%95%B0&zhida_source=entity) (residule function). **在网络深层的时候, 在优化目标的约束下, 模型通过学习使得 $\mathcal{F}(X)$ 逼近0** (residule learning)**, 让深层函数在学到东西的情况下, 又不会发生网络退化的问题.
+$\mathcal{F}(X)$ 就被称之为 **[残差函数](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=%E6%AE%8B%E5%B7%AE%E5%87%BD%E6%95%B0&zhida_source=entity) (residule function).** 在网络深层的时候, 在优化目标的约束下, 模型通过学习使得 $\mathcal{F}(X)$ 逼近0 **(residule learning)**, 让深层函数在学到东西的情况下, 又不会发生网络退化的问题.
 
   
 通过这样的构造方式, 让 $\mathcal{F}(X)$ 嵌套在了 $\mathcal{H}(X)$ 中, 这样跃层构造的方式也被称为**残差连接(residule connection)/ 跳跃连接(skip connection)/短路(shortcuts)**. 模型并不是严格的跨越2层, 可以根据需要跨越3, 4层进行连接. 同时, 等式 (1) 是在假设输入输出同维, 即 $\mathcal{F}(X)$ 和 $X$ 同维的情况, 不同维时, 只需要在 $X$ 前面增加一个转换矩阵 $W_{s}$ 即可.  
@@ -149,7 +149,7 @@ $\mathcal{F}(X)$ 就被称之为**[残差函数](https://zhida.zhihu.com/search?
 
   
 在ResNet的论文中, 做了很丰富的实验, 这里仅贴出它在ImageNet 2012数据集上的试验结果.  
-这个实验的网络以VGG网络为参考, 构造了**34-layer plain [DNN](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=DNN&zhida_source=entity)**和**34-layer residule DNN. **前者是一个标准的深层网络, 后者是增加残差处理的深层网络. 基本构造如下: (图很小吧, 都怪网络太深, 没关系, 不看也可以)  
+这个实验的网络以VGG网络为参考, 构造了**34-layer plain [DNN](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=DNN&zhida_source=entity)** 和**34-layer residule DNN.** 前者是一个标准的深层网络, 后者是增加残差处理的深层网络. 基本构造如下: (图很小吧, 都怪网络太深, 没关系, 不看也可以)  
 
 ![图片](images/e6f48bee0791.jpg)
 

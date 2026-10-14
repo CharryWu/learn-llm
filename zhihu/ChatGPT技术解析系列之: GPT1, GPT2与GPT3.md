@@ -5,7 +5,7 @@ author: 猛猿
 date: 2026-10-14
 ---
 
-**这是ChatGPT系列文章的第二篇, 持续更新中, 参见: **
+**这是ChatGPT系列文章的第二篇, 持续更新中, 参见:**
 
 **[猛猿: ChatGPT技术解析系列之: 训练框架InstructGPT](https://zhuanlan.zhihu.com/p/605516116)**
 
@@ -45,7 +45,7 @@ date: 2026-10-14
 2017年, Google推出Transformer, 利用Attention完全替代过往深度学习中的Recurrence和Convolutions  
 结构, 直白地展现出了"大一统模型"的野心,"xxx is ALL you need"也成了一个玩不烂的梗.  
   
-2018年6月, openAI推出基于**Transformer Decoder**改造的第一代**GPT (Generative Pre-Training) **, 有效证明了在NLP领域上使用**预训练+微调**方式的有效性. 紧随其后, 同年10月Google推出基于**Transformer Encoder**部分的**Bert**, 在同样参数大小的前提下, 其效果领跑于GPT1, 一时成为NLP领域的领头羊.  
+2018年6月, openAI推出基于**Transformer Decoder**改造的第一代**GPT (Generative Pre-Training)**, 有效证明了在NLP领域上使用**预训练+微调**方式的有效性. 紧随其后, 同年10月Google推出基于**Transformer Encoder**部分的**Bert**, 在同样参数大小的前提下, 其效果领跑于GPT1, 一时成为NLP领域的领头羊.  
   
 不甘示弱的openAI在4个月后, 推出更大的模型GPT2 (GPT1: 110M, Bert: 340M,, GPT2: 1.5B), 同时, openAI也知道, 光靠增加模型大小和训练数据集来获得一个和Bert差不多效果的模型, 其实是没有技术含量的. 于是, 在GPT2里, openAI引入[zero-shot](https://zhida.zhihu.com/search?content_id=223546820&content_type=Article&match_order=1&q=zero-shot&zhida_source=entity)并证明了其有效性.  
   
@@ -54,7 +54,7 @@ date: 2026-10-14
 ### 1.2 GPT1
 
   
-** (1) GPT1的设计思想**
+**(1) GPT1的设计思想**
 
 在CV里, **pre-training + fine-tune**的方式盛行已久: 先用海量有标注的数据集, 通过有监督的训练生成一个预训练模型, 然后通过下游任务, 在这个模型上做微调. 但是在NLP中, 这个方式一直很难做起来, 原因是:
 
@@ -72,7 +72,7 @@ pre-training + fine-tune
 
   
   
-** (2) GPT1: Pre-training**
+**(2) GPT1: Pre-training**
 
   
 确定好了总体设计思想, 接下来就是详细的技术实践了. GPT1的预训练模型基本遵循Transformer Decode部分的结构, 去除掉和Encoder做cross-attention的部分, 如下图:  
@@ -99,14 +99,14 @@ GPT基于Transformer decoder, 去除cross-attention
 ![图片](images/81d6f5d44ac3.jpg)
 
   
-** (3) GPT1: Fine-tune**
+**(3) GPT1: Fine-tune**
 
 有了一个预训练模型, 我们就可以做fine-tune了. 在这里, 我们让模型做4种有监督的学习:  
 
-- **分类 (Classification) **: 对本文进行分类. 比如给定一段文字, 判断表达了积极/消极情感.
-- **文本蕴含 (Entailment) **: 给定[premise](https://zhida.zhihu.com/search?content_id=223546820&content_type=Article&match_order=1&q=premise&zhida_source=entity), 判断这个premise是否支持一个hypothesis. 例如: premise为"我在周六早上被闹钟闹醒, 然后打开了电脑", 是否能够推出"一个打工人在周末起早来打工"?
-- **相似性 (Similarity) **: 给定两段文本, 判断它们表示的意思是否相似.
-- **多选题 (Multiple Choice) **: 给定一段文本和若干个答案, 判断正确答案.
+- **分类 (Classification)**: 对本文进行分类. 比如给定一段文字, 判断表达了积极/消极情感.
+- **文本蕴含 (Entailment)**: 给定[premise](https://zhida.zhihu.com/search?content_id=223546820&content_type=Article&match_order=1&q=premise&zhida_source=entity), 判断这个premise是否支持一个hypothesis. 例如: premise为"我在周六早上被闹钟闹醒, 然后打开了电脑", 是否能够推出"一个打工人在周末起早来打工"?
+- **相似性 (Similarity)**: 给定两段文本, 判断它们表示的意思是否相似.
+- **多选题 (Multiple Choice)**: 给定一段文本和若干个答案, 判断正确答案.
 
 前文说过, 在fine-tune阶段, 我们希望能够尽量减少模型架构的改动, 因此, 论文中采用了如下方法, 对这四种监督任务的输入输出做了统一:  
 
@@ -121,15 +121,15 @@ GPT基于Transformer decoder, 去除cross-attention
 
 在整个过程里, 模型需要额外训练的参数, 就是最后一层Linear层, 以及特殊符号的embedding, 同时在整体参数上做gradient updates, 可以说改动是非常小的.  
   
-最后, 在fine-tune阶段, 模型的损失函数 $L_{3} $ 包含了两部分:  
-$L_{3} = L_{2} + \lambda L_{1} $  
-其中, $L_{1} $ 是预训练阶段的损失函数, $L_{2} $ 则是fine-tune阶段的损失函数.  
+最后, 在fine-tune阶段, 模型的损失函数 $L_{3}$ 包含了两部分:  
+$L_{3} = L_{2} + \lambda L_{1}$  
+其中, $L_{1}$ 是预训练阶段的损失函数, $L_{2}$ 则是fine-tune阶段的损失函数.  
   
   
-** (4) Bert VS GPT1**
+**(4) Bert VS GPT1**
 
   
-GPT1的模型参数为L=12, H=768, A=12, 这个设置和后来Bert-Base一模一样, 但后者的效果要好上很多. 原因之一是, **GPT**采用**Masked-Attention, **对模型和训练数据的要求会更高, 因为模型能读到的信息只有上文. 而采用**普通Attention**的**Bert**在训练阶段就能同时读到上下文. 这个性质决定了GPT模型越来越大的趋势. 但是, 长远来看, **Masked-Attention是push模型更好理解文字的重要手段**, 毕竟在现实中, 我们更希望培养模型知上文补下文, 而不是单纯地做完形填空.  
+GPT1的模型参数为L=12, H=768, A=12, 这个设置和后来Bert-Base一模一样, 但后者的效果要好上很多. 原因之一是, **GPT**采用**Masked-Attention,** 对模型和训练数据的要求会更高, 因为模型能读到的信息只有上文. 而采用**普通Attention**的**Bert**在训练阶段就能同时读到上下文. 这个性质决定了GPT模型越来越大的趋势. 但是, 长远来看, **Masked-Attention是push模型更好理解文字的重要手段**, 毕竟在现实中, 我们更希望培养模型知上文补下文, 而不是单纯地做完形填空.  
   
   
 Bert的整体架构如下, 细节可以参见[猛猿: BERT学习笔记一: 基于论文精读的模型详解](https://zhuanlan.zhihu.com/p/461267517)  
@@ -143,13 +143,13 @@ Bert的整体架构如下, 细节可以参见[猛猿: BERT学习笔记一: 基�
   
 Encoder VS Decoder, Bert VS GPT1, 战火已经拉开, 但是此时GPT1仍处在劣势. 前面说过, 基于Decoder的模型, 模型和数据量越大, 效果越好. 但如果只做到这一点, 从技术上来说又太逊色了, 性价比也不高. 因此, openAI从训练数据上进行改进, 引入了zero-shot这一创新点, GPT2就诞生了.  
   
-GPT2的核心思想是: **只要我的数据够多够好, 只要我的模型够大够强. 我可以直接去掉fine-tune, 训练出一个通用的模型. **
+GPT2的核心思想是: **只要我的数据够多够好, 只要我的模型够大够强. 我可以直接去掉fine-tune, 训练出一个通用的模型.**
 
 要了解这一点, 我们先来看[Zero-shot](https://zhida.zhihu.com/search?content_id=223546820&content_type=Article&match_order=2&q=Zero-shot&zhida_source=entity), [One-shot](https://zhida.zhihu.com/search?content_id=223546820&content_type=Article&match_order=1&q=One-shot&zhida_source=entity)和Few-shot的区别:
 
 - **Zero-shot**: 只给出任务描述 (description) 和任务提示 (prompt)
-- **One-shot: **给出任务描述, 给出一个例子 (example), 给出任务提示
-- **Few-shot: **给出任务描述, 给出若干个例子, 给出任务提示
+- **One-shot:** 给出任务描述, 给出一个例子 (example), 给出任务提示
+- **Few-shot:** 给出任务描述, 给出若干个例子, 给出任务提示
 
 ![图片](images/4d329b7d29be.jpg)
 

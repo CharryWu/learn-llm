@@ -5,7 +5,7 @@ author: 猛猿
 date: 2026-10-14
 ---
 
-**20230225更新: 最近在更新ChatGPT系列, 感兴趣的朋友可以移步: **
+**20230225更新: 最近在更新ChatGPT系列, 感兴趣的朋友可以移步:**
 
 **[猛猿: ChatGPT技术解析系列之: 训练框架InstructGPT](https://zhuanlan.zhihu.com/p/605516116) (因平台bug暂时显示不出来, 可以看这一篇回答**
 
@@ -98,11 +98,11 @@ ELMo内部构造
 
 这里假设读者已有transformer的相关知识.
 
-** (1) GPT是单向的**. 在GPT吃训练tokens, 对其做attention的时候, 只atten到一个token左边的部分, 而右边的部分是mask起来的.
+**(1) GPT是单向的**. 在GPT吃训练tokens, 对其做attention的时候, 只atten到一个token左边的部分, 而右边的部分是mask起来的.
 
-** (2) GPT是无监督的**. 同样不需要对训练数据进行额外标注.
+**(2) GPT是无监督的**. 同样不需要对训练数据进行额外标注.
 
-** (3) GPT是fine-tuning的预训练模型**. 在预训练完毕, 接入下游任务后, GPT模型的参数以预训练得到的参数文件初始值, 参与到下游任务的训练中去, 因此称为"微调".
+**(3) GPT是fine-tuning的预训练模型**. 在预训练完毕, 接入下游任务后, GPT模型的参数以预训练得到的参数文件初始值, 参与到下游任务的训练中去, 因此称为"微调".
 
 **BERT**的内部同样采用的是transformer的架构 (可以理解为是transformer encoder部分). 但它综合了ELMo和GPT的优势, 具体表现在:
 
@@ -155,8 +155,8 @@ Bert模型的输入层组成
 
 BERT的训练阶段一共包含两个任务, 这两个任务是**同时**进行训练的, 它们分别是:
 
-- **Masked Language Model ([遮蔽语言模型](https://zhida.zhihu.com/search?content_id=190633912&content_type=Article&match_order=2&q=%E9%81%AE%E8%94%BD%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B&zhida_source=entity)) **
-- **Next Sentence Prediction (下一句预测) **
+- **Masked Language Model ([遮蔽语言模型](https://zhida.zhihu.com/search?content_id=190633912&content_type=Article&match_order=2&q=%E9%81%AE%E8%94%BD%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B&zhida_source=entity))**
+- **Next Sentence Prediction (下一句预测)**
 
 ![图片](images/ea0686c3bc5c.jpg)
 
@@ -176,13 +176,13 @@ Bert构造
 
 \- 10%的概率, 保持原token不变
 
-***为什么要以一定的概率去改造token, 而不是统一给这些选中被遮盖的token一个<mask>标记呢? ***
+***为什么要以一定的概率去改造token, 而不是统一给这些选中被遮盖的token一个<mask>标记呢?***
 
 这是因为, 一来, 在之后的fine-tuning阶段, 数据集中不会出现这些人造的<mask>标记, 这就造成预训练的数据集和fine-tuning的数据集不匹配的情况. 二来, 通过将token进行随机替换, 给模型增加噪声, 使得模型的泛化能力更强.
 
 (3) BERT吃进这一串处理好的token之后, 将会计算loss(被遮盖的位置输出的token, 真实token).
 
-这里, Masked Language Model将会被设置为一个很简单的Linear nn, 做多分类的预测. **为什么这里设置的模型相比于BERT要更加简单呢? **因为我们需要强迫BERT能够针对被遮盖的位置和其上下文, 抽取出信息量足够丰富的embedding, 丰富到仅用一个简单的预测模型就能对结果进行分类.
+这里, Masked Language Model将会被设置为一个很简单的Linear nn, 做多分类的预测. **为什么这里设置的模型相比于BERT要更加简单呢?** 因为我们需要强迫BERT能够针对被遮盖的位置和其上下文, 抽取出信息量足够丰富的embedding, 丰富到仅用一个简单的预测模型就能对结果进行分类.
 
 ### 5.2 Next Sentence Prediction Model (下一句预测)
 

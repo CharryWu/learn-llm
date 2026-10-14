@@ -46,9 +46,9 @@ Transformer中的三处Attention
 
   
 在RNN当中, tokens是一个一个被喂给模型的. 比如在a3的位置, 模型要等a1和a2的信息都处理完成后, 才可以生成a3. 这样的作用机制, 使得RNN存在以下几个问题:  
-**(1) Sequential operations的复杂度随着[序列长度](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E5%BA%8F%E5%88%97%E9%95%BF%E5%BA%A6&zhida_source=entity)的增加而增加. **  
+**(1) Sequential operations的复杂度随着[序列长度](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E5%BA%8F%E5%88%97%E9%95%BF%E5%BA%A6&zhida_source=entity)的增加而增加.**  
 这是指模型下一步计算的等待时间, 在RNN中为O(N). 该复杂度越大, 模型并行计算的能力越差, 反之则反.  
-**(2) Maximum Path length的复杂度随着序列长度的增加而增加. **  
+**(2) Maximum Path length的复杂度随着序列长度的增加而增加.**  
 这是指信息从一个数据点传送到另一个数据点所需要的距离, 在RNN中同样为O(N), 距离越大, 则在传送的过程中越容易出现信息缺失的情况, 即[数据点](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=3&q=%E6%95%B0%E6%8D%AE%E7%82%B9&zhida_source=entity)对于远距离处的信息, 是很难"看见"的.  
 
 那么, 在处理[序列化](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E5%BA%8F%E5%88%97%E5%8C%96&zhida_source=entity)数据的时候, 是否有办法, 在提升模型的并行运算能力的同时, 对于序列中的每个token, 也能让它不损失信息地看见序列里的其他tokens呢?  
@@ -73,7 +73,7 @@ Attention就作为一种很好的改进办法出现了.
 **2.2.1 Self-attention**
 
   
-** (1) 计算框架**
+**(1) 计算框架**
 
   
 Self-attention的意思是, 我们给Attention的输入都来自同一个序列, 其计算方式如下:  
@@ -97,7 +97,7 @@ Self-attention的意思是, 我们给Attention的输入都来自同一个序列,
 - 将这四个向量相加, 就是最终a2过attention模型后所产生的结果b2.
 
   
-** (2) 产生query, key和value**
+**(2) 产生query, key和value**
 
   
 下图描述了产生query(q), key(k)和value(v)的过程:  
@@ -115,7 +115,7 @@ $k\_dim = v\_dim = d\_model//num\_heads$
 上图所绘是num\_heads = 1的情况. 关于num\_heads的概念, 在本文的后面会详细解释.  
 
   
-** (3) 计算attention score**
+**(3) 计算attention score**
 
   
 总结一下, 到目前为止, 对于某条输入序列X, 我们有:  
@@ -147,14 +147,14 @@ $Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k} } )V$
 
 图6: scaled-dot-product
 
-** (勘误: 紫色方框中的下标应该是 $\alpha_{11}, \alpha_{12},\alpha_{13},\alpha_{14},$ )**  
+**(勘误: 紫色方框中的下标应该是 $\alpha_{11}, \alpha_{12},\alpha_{13},\alpha_{14},$ )**  
   
 **<u>之所以进行[scaling](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=scaling&zhida_source=entity), 是为了使得在softmax的过程中, [梯度下降](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D&zhida_source=entity)得更加稳定, 避免因为梯度过小而造成模型参数更新的停滞</u>**. 下面我们通过数学证明, 来解释这个结论. 为了表达方便 (也为了和论文的标识保持一致), 我们把k\_dim写成 $d_{k}$ , 同理v\_dim写成 $d_{v}$ , S表示softmax函数, 假设在做softmax之前, 紫色矩阵里的每一个值为 $\alpha_{ij}^{*}$ , 则有:
 
-$\alpha_{ij}=S(\alpha_{ij}^{*}) = \frac{e^{\alpha_{ij}^{*}}}{ {\textstyle \sum_{j=1}^{d_k}e^{\alpha_{ij}^{*}}} } $
+$\alpha_{ij}=S(\alpha_{ij}^{*}) = \frac{e^{\alpha_{ij}^{*}}}{ {\textstyle \sum_{j=1}^{d_k}e^{\alpha_{ij}^{*}}} }$
 
   
-聚焦到紫色矩阵的某一行, 对于其中某个 ${j}' $ , 我们有:
+聚焦到紫色矩阵的某一行, 对于其中某个 ${j}'$ , 我们有:
 
   
   
@@ -166,7 +166,7 @@ $\begin{aligned} \frac{\partial S(\alpha_{i{j}'}^{*})}{\partial \alpha_{i{j}'}^{
 - 当 $\alpha_{i{j}'}^{*}$ 相对于同一行其他的 $\alpha_{ij}^{*}$ 更小的时候, $S(\alpha_{i{j}'}^{*})$ 趋近于0, $S(\alpha_{ij}^{*})$ 趋近于1, 此时以上的两个结果都趋近于0.
 
   
-**<u>总结起来, 即当</u>** **$\alpha_{i{j}'}^{*}$** **<u>相对于其他结果过大或者过小时, 都会造成softmax函数的偏导趋近于0 (梯度过低). </u>**在这种情况下, 整个模型在backprop的过程中, 经过softmax之后, 就无法继续传播到softmax之前的函数上, 造成模型参数无法更新, 影响了模型的训练效率.  
+**<u>总结起来, 即当</u>** **$\alpha_{i{j}'}^{*}$** **<u>相对于其他结果过大或者过小时, 都会造成softmax函数的偏导趋近于0 (梯度过低). </u>** 在这种情况下, 整个模型在backprop的过程中, 经过softmax之后, 就无法继续传播到softmax之前的函数上, 造成模型参数无法更新, 影响了模型的训练效率.  
   
 那么 $\alpha_{i{j}}^{*}$ 是怎么计算来的呢? 通过前面的讲解可以知道:  
 $\alpha_{ij}^{*}=qk^{T} = \sum_{j=1}^{d_{k}}q_{ij}k_{ji}$  

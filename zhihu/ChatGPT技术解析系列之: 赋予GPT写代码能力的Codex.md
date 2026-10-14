@@ -10,7 +10,7 @@ date: 2026-10-14
 ChatGPT的训练框架
 
   
-**这是ChatGPT系列文章的第三篇, 持续更新中, 参见: **
+**这是ChatGPT系列文章的第三篇, 持续更新中, 参见:**
 
 **[猛猿: ChatGPT技术解析系列之: 训练框架InstructGPT](https://zhuanlan.zhihu.com/p/605516116)**
 
@@ -51,18 +51,18 @@ ChatGPT的演变之路
 Codex的整体设计
 
   
-** (1) 训练数据**: 从github上爬下小于1MB的python文件, 去除掉那些可能是自动生成的, 平均每行长度大于100的, 最大行长度大于1000的, 几乎不含字母数字的. 经过清洗处理后, 最终得到1**59GB的训练集**.  
-** (2) 预训练**: 将清洗过后的数据集送入GPT3架构的模型中, **重新训练一个模型**. 注意这里不再是基于GPT3做微调, 也不再使用GPT3训好的权重. 而是整个重新训练. **最终得到一个12B参数量的模型Codex. **  
-** (3) 有监督微调**: 为了解决训练数据和评估数据间的的gap (下文会细说), 需要新的训练数据做微调.  
+**(1) 训练数据**: 从github上爬下小于1MB的python文件, 去除掉那些可能是自动生成的, 平均每行长度大于100的, 最大行长度大于1000的, 几乎不含字母数字的. 经过清洗处理后, 最终得到1**59GB的训练集**.  
+**(2) 预训练**: 将清洗过后的数据集送入GPT3架构的模型中, **重新训练一个模型**. 注意这里不再是基于GPT3做微调, 也不再使用GPT3训好的权重. 而是整个重新训练. **最终得到一个12B参数量的模型Codex.**  
+**(3) 有监督微调**: 为了解决训练数据和评估数据间的的gap (下文会细说), 需要新的训练数据做微调.  
 格式上, 这批数据需要满足:
 
 - **prompt + completion形式**. prompt中包含函数签名(def部分)和函数注释, completion即代码的主体, 是根据注视要求写出的代码, 也即监督训练的文本标签.
-- **单元测 (unit tests) **. 用于测试代码是否准确. **这也是代码文本和文字文本在评估方面的主要差异**, 下文会展开说.
+- **单元测 (unit tests)**. 用于测试代码是否准确. **这也是代码文本和文字文本在评估方面的主要差异**, 下文会展开说.
 
 来源上, 这批数据来自:
 
-- **算法竞赛或者面试网站. **Leetcode类型, 相信大家都不陌生, 其中也涵盖了单元测. 共收集1w条数据.
-- **[Github](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=Github&zhida_source=entity) repo中, 使用travis和[tox](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=tox&zhida_source=entity)的那些脚本**, 因为这些脚本一般都用来做**持续集成 (Continuous Integration, CI) **. 持续集成这个概念常见于[敏捷开发](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=%E6%95%8F%E6%8D%B7%E5%BC%80%E5%8F%91&zhida_source=entity)中, 也就是我先写好单元测试, 布好虚拟环境. 等你的代码一提交上来, 我就对代码进行测试, 确定它是否能无误合并到主分支上. 这样的脚本里通常蕴含待测试的函数和单元测, 非常符合微调数据需求. 共收集4w条数据.
+- **算法竞赛或者面试网站.** Leetcode类型, 相信大家都不陌生, 其中也涵盖了单元测. 共收集1w条数据.
+- **[Github](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=Github&zhida_source=entity) repo中, 使用travis和[tox](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=tox&zhida_source=entity)的那些脚本**, 因为这些脚本一般都用来做**持续集成 (Continuous Integration, CI)**. 持续集成这个概念常见于[敏捷开发](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=%E6%95%8F%E6%8D%B7%E5%BC%80%E5%8F%91&zhida_source=entity)中, 也就是我先写好单元测试, 布好虚拟环境. 等你的代码一提交上来, 我就对代码进行测试, 确定它是否能无误合并到主分支上. 这样的脚本里通常蕴含待测试的函数和单元测, 非常符合微调数据需求. 共收集4w条数据.
 
 经过微调后, **最终得到Codex-S**
 
@@ -73,7 +73,7 @@ Codex的整体设计
   
 传统的文本评估中, 我们采用[BLEU分数](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=BLEU%E5%88%86%E6%95%B0&zhida_source=entity), 来比较模型产出的结果, 和标准结果间的相似度.  
 但BLEU不适合做代码结果评估, 因为代码正确与否, 看得不是和标准答案间的相似程度, 而是要看这段代码能否通过单元测, 正确运行.  
-因此, Codex在评估时, 构造了全新数据集**[HumanEval](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=HumanEval&zhida_source=entity)**. 它的组成为:
+因此, Codex在评估时, 构造了全新数据集 **[HumanEval](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=HumanEval&zhida_source=entity)**. 它的组成为:
 
 - 函数签名 (function signature, 即def部分)
 - 函数注释 (docstring)
@@ -93,29 +93,29 @@ Codex中的评估数据示例: 白色部分为prompt, 黄色部分为completion
 
   
 在人类写代码的过程中, 会经历一遍遍debug到最终写对的过程. 因此, 我们也模拟这个方式, 来评估模型产出的代码是否正确:  
-**对同一个问题(prompt), 我让模型产生k个答案, 只要有1个通过单元测, 我就认为模型做对了这道题. **  
+**对同一个问题(prompt), 我让模型产生k个答案, 只要有1个通过单元测, 我就认为模型做对了这道题.**  
 基于这一标准, 我们给出一个量化的评估指标pass@k:
 
   
-$pass@k := E_{problems}[1-\frac{C_{n-c}^{k}}{{C_{n}^{k}}}] $  
+$pass@k := E_{problems}[1-\frac{C_{n-c}^{k}}{{C_{n}^{k}}}]$  
 
 其中:
 
 - $n$ : 对同一个问题, 让模型产生n个答案. 在论文中, 取n = 200
-- $k $ : 从这n个答案中, 随机抽出k个. 在论文中, 取 k<=n
-- $c $ : 模型产生的n个答案里, 通过单元测的答案有c个.
-- $\frac{C_{n-c}^{k}}{{C_{n}^{k}}} $ : 从模型产生的k个答案里抽取k个, 这k个答案全部错误的概率.
-- $pass@k $ : **整合起来, 这个指标表示, 从模型的答案中随机抽取k个后, 能从这k个里得到正确答案的概率**.
+- $k$ : 从这n个答案中, 随机抽出k个. 在论文中, 取 k<=n
+- $c$ : 模型产生的n个答案里, 通过单元测的答案有c个.
+- $\frac{C_{n-c}^{k}}{{C_{n}^{k}}}$ : 从模型产生的k个答案里抽取k个, 这k个答案全部错误的概率.
+- $pass@k$ : **整合起来, 这个指标表示, 从模型的答案中随机抽取k个后, 能从这k个里得到正确答案的概率**.
 
   
 可能有人会问, 你这怎么又n又k的, 这么麻烦呢. 不如对同一个问题, 都让模型直接生成k个答案, 去里面找有没有正确的就行了. 何必又从n里抽k呢?  
 这样做的原因是, **当k越大时, 模型更有可能产出正确的答案. 因此研究时, 也要考虑k对评估指标的影响**. 为了方便, 干脆让模型对同一个问题, 一次性生成n个答案, 我们再从中评估不同k值大小的影响就行.
 
   
-$pass@k $ 在工程计算时, 又会产生新的问题: $\frac{C_{n-c}^{k}}{{C_{n}^{k}}} $ 这一项在展开计算时, 涉及到多次阶层计算, 数字会非常大, 引起精度上的不稳定. 因此在实际写代码时, 我们需要对这项化简, 尽量减少阶层运算次数, 化简过程如下:  
+$pass@k$ 在工程计算时, 又会产生新的问题: $\frac{C_{n-c}^{k}}{{C_{n}^{k}}}$ 这一项在展开计算时, 涉及到多次阶层计算, 数字会非常大, 引起精度上的不稳定. 因此在实际写代码时, 我们需要对这项化简, 尽量减少阶层运算次数, 化简过程如下:  
   
   
-$\begin{aligned} 1-\frac{C_{n-c}^{k}}{{C_{n}^{k}}} &= 1-\frac{(n-c)!}{k!(n-c-k)!} * \frac{k!(n-k)!}{n!} \\ & = 1- \frac{(n-c)!}{n!} * \frac{(n-k)!}{(n-c-k)!}\\ & = 1-\prod_{i=n-c+1}^{n}\frac{1}{i}\prod_{i=n-c-k+1}^{n-k}i \\ & = 1-\prod_{i=n-c+1}^{n}\frac{1}{i}\prod_{i=n-c+1}^{n}(i-k) \\ & = 1-\prod_{i=n-c+1}^{n}\frac{i-k}{i}\\ & = 1 - \prod_{i=n-c+1}^{n}(1-\frac{k}{i}) \end{aligned} $  
+$\begin{aligned} 1-\frac{C_{n-c}^{k}}{{C_{n}^{k}}} &= 1-\frac{(n-c)!}{k!(n-c-k)!} *\frac{k!(n-k)!}{n!} \\ & = 1- \frac{(n-c)!}{n!}* \frac{(n-k)!}{(n-c-k)!}\\ & = 1-\prod_{i=n-c+1}^{n}\frac{1}{i}\prod_{i=n-c-k+1}^{n-k}i \\ & = 1-\prod_{i=n-c+1}^{n}\frac{1}{i}\prod_{i=n-c+1}^{n}(i-k) \\ & = 1-\prod_{i=n-c+1}^{n}\frac{i-k}{i}\\ & = 1 - \prod_{i=n-c+1}^{n}(1-\frac{k}{i}) \end{aligned}$  
   
   
 写成numpy代码就是:  
@@ -129,18 +129,18 @@ pass@k的numpy代码实现
 ### 2.3 评估阶段的模型输出
 
   
-** (1) 停止条件**  
+**(1) 停止条件**  
 评估阶段, 我们不能让模型一直无条件地生成代码, 必须给定一个停止标志. 当模型遇到'\\nclass','\\ndef','\\n#','\\nif','\\nprint'时, 停止输出. 这里碰到'\\nif'停止, 主要原因可能是HumanEval数据集里, 所有的if...elif...else的条件都放在一行进行表述.'\\nclass'和'\\ndef'则表示开启了一个新类/方法. 遇到'\\nprint'停止则是防止开始产生废话.
 
   
-** (2) 输出采样**  
-我们会发现一个现象: **给GPT类的模型输入同一个问题, 得到的答案可能是不相同的**. 因为GPT往往通过采样的方式, 决定token的产出结果, 而不是固定取softmax算出的最大概率token. 在文字文本里, 可以通过**Beam Search等**方式做到概率采样, 而Codex中使用的是一种叫**[Nucleus Sampling](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=Nucleus+Sampling&zhida_source=entity)**的方法, 具体过程是:
+**(2) 输出采样**  
+我们会发现一个现象: **给GPT类的模型输入同一个问题, 得到的答案可能是不相同的**. 因为GPT往往通过采样的方式, 决定token的产出结果, 而不是固定取softmax算出的最大概率token. 在文字文本里, 可以通过**Beam Search等**方式做到概率采样, 而Codex中使用的是一种叫 **[Nucleus Sampling](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=Nucleus+Sampling&zhida_source=entity)** 的方法, 具体过程是:
 
 - 在每一个timestep, 把词的概率从大到小排列
 - 从概率最大的词开始, 依次取词, 直到取出词的概率总和>=0.95为止
 - 在取出的词中, 按概率进行采样, 得到最终的该timestep上的词.
 
-**Nucleus Sampling的优点在于: **
+**Nucleus Sampling的优点在于:**
 
 - 尽量让生成的结果具有多样性. 即每次取概率最大的词, 在代码层面上并不能保证最终结果是最优的.
 - 排除掉那些特别不靠谱的词. (定>=0.95这一准则的原因.)

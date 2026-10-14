@@ -5,7 +5,7 @@ author: 猛猿
 date: 2026-10-14
 ---
 
-**20230225更新: 最新在更新ChatGPT系列, 感兴趣的朋友可以移步: **[猛猿: ChatGPT技术解析系列之: 训练框架InstructGPT](https://zhuanlan.zhihu.com/p/605516116)
+**20230225更新: 最新在更新ChatGPT系列, 感兴趣的朋友可以移步:**[猛猿: ChatGPT技术解析系列之: 训练框架InstructGPT](https://zhuanlan.zhihu.com/p/605516116)
 
 关于[Transformer](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Transformer&zhida_source=entity)的笔记, 预计出如下几篇:
 
@@ -61,7 +61,7 @@ date: 2026-10-14
 Batch Normalization (以下简称BN) 的方法最早由[Ioffe&Szegedy](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1502.03167.pdf)在2015年提出, 主要用于解决在深度学习中产生的ICS ([Internal Covariate Shift](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Internal+Covariate+Shift&zhida_source=entity)) 的问题. 若模型输入层数据分布发生变化, 则模型在这波变化数据上的表现将有所波动, 输入层分布的变化称为Covariate Shift, 解决它的办法就是常说的[Domain Adaptation](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Domain+Adaptation&zhida_source=entity). 同理, 在深度学习中, 第L+1层的输入, 也可能随着第L层参数的变动, 而引起分布的变动. 这样每一层在训练时, 都要去适应这样的分布变化, 使得训练变得困难. 这种层间输入分布变动的情况, 就是Internal Covariate Shift. 而BN提出的初衷就是为了解决这一问题.
 
   
-$\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} (线性变化层) \\ A^{[L]} &= g^{[L]}(Z^{[L]}) (非线性变化/激活函数层) \end{aligned}$
+$\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} \text{ (线性变化层)} \\ A^{[L]} &= g^{[L]}(Z^{[L]}) \text{ (非线性变化/激活函数层)} \end{aligned}$
 
 (ICS: 随着梯度下降的进行, $W^{[L]}$ 和 $b{[L]}$ 都会被更新, 则 $Z^{[L]}$ 的分布改变, 进而影响 $A^{[L]}$ 分布, 也就是第L+1层的输出)  
 
@@ -69,7 +69,7 @@ $\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} (线性变化层) \\ A
 1.1.1 ICS所带来的问题
 
   
-** (1) 在过激活层的时候, 容易陷入激活层的梯度饱和区, 降低模型收敛速度. **  
+**(1) 在过激活层的时候, 容易陷入激活层的梯度饱和区, 降低模型收敛速度.**  
 这一现象发生在我们对模型使用[饱和激活函数](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=%E9%A5%B1%E5%92%8C%E6%BF%80%E6%B4%BB%E5%87%BD%E6%95%B0&zhida_source=entity)(saturated activation function), 例如sigmoid, [tanh](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=tanh&zhida_source=entity)时. 如下图:
 
 ![图片](images/70458ac36c28.jpg)
@@ -78,7 +78,7 @@ $\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} (线性变化层) \\ A
 
   
 可以发现当绝对值越大时, 数据落入图中两端的梯度饱和区 (saturated [regime](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=regime&zhida_source=entity)), 造成梯度消失, 进而降低模型收敛速度. 当数据分布变动非常大时, 这样的情况是经常发生的. 当然, 解决这一问题的办法可以采用非饱和的激活函数, 例如ReLu.  
-** (2) 需要采用更低的学习速率, 这样同样也降低了模型收敛速度. **  
+**(2) 需要采用更低的学习速率, 这样同样也降低了模型收敛速度.**  
 如前所说, 由于输入变动大, 上层网络需要不断调整去适应下层网络, 因此这个时候的学习速率不宜设得过大, 因为梯度下降的每一步都不是"确信"的.  
 
 ### 1.1.2 解决ICS的常规方法
@@ -142,10 +142,10 @@ $\begin{aligned} \mu_j &= \frac{1}{m} \sum_{i=1}^{m} Z^i_j \\ \sigma^2_j &= \fra
 1.2.2 测试过程中的BN
 
   
-在训练过程里, 我们等一个batch的数据都装满之后, 再把数据装入模型, 做BN. 但是在测试过程中, 我们却更希望模型能来一条数据就做一次预测, 而不是等到装满一个batch再做预测. 也就是说, 我们希望测试过程共的数据不依赖batch, 每一条数据都有一个唯一预测结果. **这就产生了训练和测试中的gap: 测试里的** $\mu, \sigma$ **要怎么算呢? **一般来说有两种方法.
+在训练过程里, 我们等一个batch的数据都装满之后, 再把数据装入模型, 做BN. 但是在测试过程中, 我们却更希望模型能来一条数据就做一次预测, 而不是等到装满一个batch再做预测. 也就是说, 我们希望测试过程共的数据不依赖batch, 每一条数据都有一个唯一预测结果. **这就产生了训练和测试中的gap: 测试里的** $\mu, \sigma$ **要怎么算呢?** 一般来说有两种方法.
 
   
-** (1) 用训练集中的均值和方差做测试集中均值和方差的[无偏估计](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=%E6%97%A0%E5%81%8F%E4%BC%B0%E8%AE%A1&zhida_source=entity)**
+**(1) 用训练集中的均值和方差做测试集中均值和方差的[无偏估计](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=%E6%97%A0%E5%81%8F%E4%BC%B0%E8%AE%A1&zhida_source=entity)**
 
   
 保留训练模型中, **每一组**batch的**每一个**特征在**每一层**的 $\mu_{batch}, \sigma^2_{batch}$ , 这样我们就可以得到测试数据均值和方差的无偏估计:
@@ -155,7 +155,7 @@ $\begin{aligned} \mu_{test} &= \mathbb{E}(\mu_{batch}) \\ \sigma^2_{test} &= \fr
 其中m表示的是批量大小.  
 这种做法有一个明显的缺点: 需要消耗较大的存储空间, 保存训练过程中所有的均值和方差结果 (每一组, 每一个, 每一层).  
   
-** (2) [Momentum](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Momentum&zhida_source=entity): 移动平均法(Moving Average)**
+**(2) [Momentum](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Momentum&zhida_source=entity): 移动平均法(Moving Average)**
 
   
 稍微改变一下训练过程中计算均值和方差的办法, 设 $\mu_{t}$是当前步骤求出的均值, $\bar \mu$ 是之前的训练步骤累积起来求得的均值 (也称running mean), 则:  
@@ -176,7 +176,7 @@ $\bar{\sigma^2} \gets p\bar{\sigma^2} + (1-p){\sigma^2}^{t}$
 - 使得数据不落入饱和性激活函数 (如sigmoid, tanh等) 饱和区间, 避免梯度消失的问题
 
 ###   
-**1.4 大反转: 著名深度学习方法BN成功的秘密竟不在ICS? **
+**1.4 大反转: 著名深度学习方法BN成功的秘密竟不在ICS?**
 
   
 以解决ICS为目的而提出的BN, 在各个比较实验中都取得了更优的结果. 但是来自MIT的[Santurkar et al. 2019](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1805.11604.pdf)却指出:
@@ -220,7 +220,7 @@ BN提出后, 被广泛作用在CNN任务上来处理图像, 并取得了很好�
 
 ![图片](images/0d3f3f3f0fd6.jpg)
 
-这是一个结合实验的解释, 而引起这个现象的原因, **可能不止是"长短不一"这一个, 也可能和数据本身在某一维度分布上的差异性有关 (想一下, 对不同句子之间的第一个词做BN, 求出来的mean和variance几乎是没有意义的) **. 目前相关知识水平有限, 只能理解到这里, 未来如果有更确切的想法, 会在这里补充.  
+这是一个结合实验的解释, 而引起这个现象的原因, **可能不止是"长短不一"这一个, 也可能和数据本身在某一维度分布上的差异性有关 (想一下, 对不同句子之间的第一个词做BN, 求出来的mean和variance几乎是没有意义的)**. 目前相关知识水平有限, 只能理解到这里, 未来如果有更确切的想法, 会在这里补充.  
   
 
 ###   
@@ -235,7 +235,7 @@ Layer Normalization计算过程
 
   
   
-**在图像问题中, LN是指对一整张图片进行标准化处理, 即在一张图片所有channel的pixel范围内计算均值和方差. 而在NLP的问题中, LN是指在一个句子的一个token的范围内进行标准化. **
+**在图像问题中, LN是指对一整张图片进行标准化处理, 即在一张图片所有channel的pixel范围内计算均值和方差. 而在NLP的问题中, LN是指在一个句子的一个token的范围内进行标准化.**
 
 ![图片](images/37eafc372e54.jpg)
 
@@ -267,7 +267,7 @@ LN使得各条数据间在进行标准化的时候相互独立, 因此LN在训�
 - 在收敛速度上, 由于Pre-LN不采用warm-up, 其一开始的learning rate较Post-LN更高, 因此它的收敛速度更快.
 - 在超参调整上, warm-up策略带来了两个需要调整的参数: $lr_{max}$ (最大学习率) 和 $T_{warmup}$ (warmup过程的总步数). 这两个参数的调整将会影响到模型最终的效果. 而由于transformer模型的训练代价是昂贵的, 因此多引入超参, 也给模型训练带来了一定难度.
 
-> **Quick Tips: **warm-up learning rate, 即指在训练初期的一定步数内, 缓慢将学习率从0升至 $lr_{max}$ , 超过此步数范围则采用decay learning rate的策略. 在大batch数据集的训练中, warm-up learning rate具有较好的表现.
+> **Quick Tips:** warm-up learning rate, 即指在训练初期的一定步数内, 缓慢将学习率从0升至 $lr_{max}$ , 超过此步数范围则采用decay learning rate的策略. 在大batch数据集的训练中, warm-up learning rate具有较好的表现.
 
 ![图片](images/035f514e01ed.jpg)
 
