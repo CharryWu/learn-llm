@@ -92,7 +92,7 @@ Self-attention的意思是, 我们给Attention的输入都来自同一个序列,
   
 以图中的token a2为例:
 
-- 它产生一个query, 每个query都去和别的token的key做"**某种方式**"的计算, 得到的结果我们称为attention score (即为图中的$$\\alpha $$). 则一共得到四个attention score. (attention score又可以被称为attention weight).
+- 它产生一个query, 每个query都去和别的token的key做"**某种方式**"的计算, 得到的结果我们称为attention score (即为图中的 $\alpha$ ). 则一共得到四个attention score. (attention score又可以被称为attention weight).
 - 将这四个score分别乘上每个token的value, 我们会得到四个抽取信息完毕的向量.
 - 将这四个向量相加, 就是最终a2过attention模型后所产生的结果b2.
 
@@ -109,7 +109,7 @@ Self-attention的意思是, 我们给Attention的输入都来自同一个序列,
   
 假设batch\_size=1, 输入序列X的形状为(seq\_len = 4, d\_model = 6), 则对于这串序列, 我们产生三个[参数矩阵](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E5%8F%82%E6%95%B0%E7%9F%A9%E9%98%B5&zhida_source=entity): $W^{Q}, W^{K}, W^{V}$ . 通过上述的[矩阵乘法](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95&zhida_source=entity), 我们可以得到最终的结果Q, K, V.  
   
-一般来说, $W^{Q}$ 和 $W^{K}$ 都同样使用k\_dim, $$W^{V}$ 使用v\_dim. k\_dim和v\_dim不一定要相等, 但在transformer的原始论文中, 采用的策略是, 设num\_heads为self-attention的头数, 则:  
+一般来说, $W^{Q}$ 和 $W^{K}$ 都同样使用k\_dim, $W^{V}$ 使用v\_dim. k\_dim和v\_dim不一定要相等, 但在transformer的原始论文中, 采用的策略是, 设num\_heads为self-attention的头数, 则:  
 $k\_dim = v\_dim = d\_model//num\_heads$  
 
 上图所绘是num\_heads = 1的情况. 关于num\_heads的概念, 在本文的后面会详细解释.  
