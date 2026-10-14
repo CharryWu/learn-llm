@@ -121,9 +121,13 @@ GPT基于Transformer decoder, 去除cross-attention
 
 在整个过程里, 模型需要额外训练的参数, 就是最后一层Linear层, 以及特殊符号的embedding, 同时在整体参数上做gradient updates, 可以说改动是非常小的.  
   
-最后, 在fine-tune阶段, 模型的损失函数 $L_{3}$ 包含了两部分:  
-$L_{3} = L_{2} + \lambda L_{1}$  
-其中, $L_{1}$ 是预训练阶段的损失函数, $L_{2}$ 则是fine-tune阶段的损失函数.  
+最后, 在fine-tune阶段, 模型的损失函数 $L _ {3}$ 包含了两部分:  
+
+$$
+L _ {3} = L _ {2} + \lambda L _ {1}
+$$
+
+其中, $L _ {1}$ 是预训练阶段的损失函数, $L _ {2}$ 则是fine-tune阶段的损失函数.  
   
   
 **(4) Bert VS GPT1**

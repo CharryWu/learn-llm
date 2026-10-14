@@ -70,7 +70,7 @@ $$
 
 ![三层网络: 每块先 W,b 再激活](zhihu/images/9dac34bd5cbb.jpg)
 
-*数据从左往右流: $x \to Z^{[1]} \to A^{[1]} \to \dots \to$ LOSS. [反向传播](#反向传播-训练的心脏) 就是把这张图倒着走一遍. 图源: [ResNet 笔记](<zhihu/Transformer学习笔记四: ResNet (残差网络).md>).*
+数据从左往右流: $x \to Z^{[1]} \to A^{[1]} \to \dots \to$ LOSS. [反向传播](#反向传播-训练的心脏) 就是把这张图倒着走一遍. 图源: [ResNet 笔记](<zhihu/Transformer学习笔记四: ResNet (残差网络).md>).
 
 #### "隐藏层"和"激活层"是一回事吗?
 
@@ -118,10 +118,10 @@ nn.Linear(hidden, out)  # ← 下一层
 线性层叠多少层都白搭, 因为矩阵乘法能合并:
 
 $$
-W_2 (W_1 x) = (W_2 W_1)\, x = W' x
+W_2 (W_1 x) = (W_2 W_1)\thinspace  x = W' x
 $$
 
-**符号速读:** 先乘 $W_1$ 再乘 $W_2$, 等于直接乘一个合并后的 $W'$. 两层线性 = 一层线性. 中间塞一个非线性 $g$, 就合并不了了: $W_2\, g(W_1 x) \ne (W_2 W_1) x$.
+**符号速读:** 先乘 $W_1$ 再乘 $W_2$, 等于直接乘一个合并后的 $W'$. 两层线性 = 一层线性. 中间塞一个非线性 $g$, 就合并不了了: $W_2\thinspace  g(W_1 x) \ne (W_2 W_1) x$.
 
 > **关键:** 激活函数让神经网络从"花式线性回归"变成"啥函数都能拟合".
 
@@ -140,7 +140,7 @@ $$
 
 ![常见激活函数和它们的饱和区](zhihu/images/70458ac36c28.jpg)
 
-*sigmoid / tanh 两头是平的, 叫**饱和区**, 那里梯度几乎为 0. 图源: [LayerNorm 笔记](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).*
+sigmoid / tanh 两头是平的, 叫**饱和区**, 那里梯度几乎为 0. 图源: [LayerNorm 笔记](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).
 
 | 函数 | 公式 | 现在用在哪 | 输在哪 / 赢在哪 |
 | --- | --- | --- | --- |
@@ -184,7 +184,7 @@ $$
 softmax 是**输出层**和**注意力权重**的"激活函数", 把一堆分数 (logits) 变成加起来等于 1 的概率:
 
 $$
-\text{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j} e^{z_j}}
+\text{softmax}(z) _ i = \frac{e^{z_i}}{\sum _ {j} e^{z_j}}
 $$
 
 **符号速读:** $z$ 是整个分数向量 (每个类别 / 每个 token 一个分数). $i$ 是你问的那个类别, $j$ 跑遍所有类别 (换个字母是因为 $i$ 固定, $j$ 在扫). 分子是"我的权重", 分母是"所有人的权重之和", 相除就是"我的份额".
@@ -200,11 +200,11 @@ $$
 
 后面会反复遇到的三件事:
 
-1. **温度** — 先把分数除以 $T$ 再 softmax: $p_i \propto e^{z_i/T}$. $T<1$ 更尖, $T>1$ 更平. 这就是 [采样旋钮](#采样-推理时的旋钮).
-2. **饱和** — softmax 的梯度是 $s_i(\delta_{ij} - s_j)$. 某个分数一家独大时 ($s_i \to 1$, 其他 $\to 0$), 梯度全变 0, 学不动. 所以注意力要 [除以 √d_k](#为啥要除以-d_k).
+1. **温度** — 先把分数除以 $T$ 再 softmax: $p_i \propto e^{z_i/T}$. $T\lt 1$ 更尖, $T\gt 1$ 更平. 这就是 [采样旋钮](#采样-推理时的旋钮).
+2. **饱和** — softmax 的梯度是 $s_i(\delta _ {ij} - s_j)$. 某个分数一家独大时 ($s_i \to 1$, 其他 $\to 0$), 梯度全变 0, 学不动. 所以注意力要 [除以 √d_k](#为啥要除以-d_k).
 3. **防溢出** — 代码里算 `softmax(z - max(z))`, 结果一样, 但 exp 不会爆.
 
-**符号速读 (梯度那条):** $s_i$ 是第 $i$ 个概率, $\delta_{ij}$ 在 $i=j$ 时是 1 否则是 0. $i=j$ 时是 $s_i(1-s_i)$: 抬高自己的分数, 自己的概率涨. $i \ne j$ 时是 $-s_i s_j$: 别人涨, 我就跌.
+**符号速读 (梯度那条):** $s_i$ 是第 $i$ 个概率, $\delta _ {ij}$ 在 $i=j$ 时是 1 否则是 0. $i=j$ 时是 $s_i(1-s_i)$: 抬高自己的分数, 自己的概率涨. $i \ne j$ 时是 $-s_i s_j$: 别人涨, 我就跌.
 
 更多: [softmax.md](softmax.md). 跟 [交叉熵](#损失函数) 配对后, 梯度简单到只剩 $p - y$.
 
@@ -229,8 +229,8 @@ loss 是一个数, 表示"错得有多离谱". 训练 = 把它往下压.
 
 | 损失 | 公式 | 用在 |
 | --- | --- | --- |
-| **交叉熵** | $\mathcal{L} = -\log p_{\text{正确答案}}$ | 分类, **预测下一个 token (大模型默认)** |
-| **MSE** | $\frac{1}{N}\sum_i (\hat{y}_i - y_i)^2$ | 回归 (比如 [`A*B%C` 例子](#workshop-例子-用-mlp-算-ab--c)) |
+| **交叉熵** | $\mathcal{L} = -\log p _ {\text{正确答案}}$ | 分类, **预测下一个 token (大模型默认)** |
+| **MSE** | $\frac{1}{N}\sum_i (\hat{y} _ i - y_i)^2$ | 回归 (比如 [`A*B%C` 例子](#workshop-例子-用-mlp-算-ab--c)) |
 
 **交叉熵的直觉:** 正确答案是 one-hot 时, 一通化简只剩"模型给正确答案的概率". loss 就是 "看到正确答案时你有多惊讶".
 
@@ -243,10 +243,10 @@ loss 是一个数, 表示"错得有多离谱". 训练 = 把它往下压.
 语言模型就是对每个位置都算一遍, 再取平均:
 
 $$
-\mathcal{L}_{\text{LM}} = -\frac{1}{T}\sum_{t=1}^{T} \log P_\theta(x_t \mid x_{<t})
+\mathcal{L} _ {\text{LM}} = -\frac{1}{T}\sum _ {t=1}^{T} \log P _ \theta(x_t \mid x _ {\lt t})
 $$
 
-**符号速读:** $T$ 是序列长度 (不是温度). $x_t$ 是第 $t$ 个位置的真实 token. 竖线 $\mid$ 读作"已知". $x_{<t}$ 是它前面所有 token, 严格小于, 不能偷看答案 (靠 [因果遮罩](#因果遮罩-不许偷看后面) 保证). $P_\theta$ 是模型给的概率, 下标 $\theta$ 表示它取决于模型参数. 负号让 loss 变成正数.
+**符号速读:** $T$ 是序列长度 (不是温度). $x_t$ 是第 $t$ 个位置的真实 token. 竖线 $\mid$ 读作"已知". $x _ {\lt t}$ 是它前面所有 token, 严格小于, 不能偷看答案 (靠 [因果遮罩](#因果遮罩-不许偷看后面) 保证). $P _ \theta$ 是模型给的概率, 下标 $\theta$ 表示它取决于模型参数. 负号让 loss 变成正数.
 
 **为啥跟 softmax 是绝配:** 交叉熵对 logits 求导, 结果就是
 
@@ -299,16 +299,16 @@ $$
 
 $$
 \frac{\partial \mathcal{L}}{\partial W^{[1]}}
-= \frac{\partial \mathcal{L}}{\partial A^{[3]}}\;
-\underbrace{g^{[3]\prime} W^{[3]}}_{\text{第 3 层}}\;
-\underbrace{g^{[2]\prime} W^{[2]}}_{\text{第 2 层}}\;
-g^{[1]\prime}\,\frac{\partial Z^{[1]}}{\partial W^{[1]}}
+= \frac{\partial \mathcal{L}}{\partial A^{[3]}}\thickspace
+\underbrace{g^{[3]\prime} W^{[3]}} _ {\text{第 3 层}}\thickspace
+\underbrace{g^{[2]\prime} W^{[2]}} _ {\text{第 2 层}}\thickspace
+g^{[1]\prime}\thinspace \frac{\partial Z^{[1]}}{\partial W^{[1]}}
 $$
 
 **符号速读:** 开头是 loss 传下来的梯度. 每对 $g' W$ 是穿过一层要付的"过路费": $g'$ 是过激活, $W$ 是过线性层. 层数越多, 乘的项越多. 最后一项等于输入 $x$.
 
-- 大部分 $g' W > 1$ → 越乘越大 → **梯度爆炸**.
-- 大部分 $g' W < 1$ → 越乘越小 → **梯度消失** (sigmoid 的 $g' \le 1/4$ 天然往这边走).
+- 大部分 $g' W \gt 1$ → 越乘越大 → **梯度爆炸**.
+- 大部分 $g' W \lt 1$ → 越乘越小 → **梯度消失** (sigmoid 的 $g' \le 1/4$ 天然往这边走).
 
 70 多层时, 这一串连乘就是"深度网络为啥难训"的全部原因. [第 3 节](#3️⃣-稳住-深网络为啥能训) 的每一招, 都是为了让这些因子接近 1.
 
@@ -334,9 +334,9 @@ SGD ── + 动量 ── + 自适应学习率 (RMSProp/AdaGrad)
 
 | 优化器 | 更新规则 | 直觉 |
 | --- | --- | --- |
-| **SGD** | $w \leftarrow w - \eta\, g$ | 顺着坡直接往下走 |
+| **SGD** | $w \leftarrow w - \eta\thinspace  g$ | 顺着坡直接往下走 |
 | **+ 动量** | $m \leftarrow \beta m + g$, $w \leftarrow w - \eta m$ | 像滚下坡的球, 小坑小洼冲过去 |
-| **Adam** | $w \leftarrow w - \eta\, \hat m / (\sqrt{\hat v} + \epsilon)$ | 动量 + 每个参数自己的步长: 梯度又大又抖的参数, 步子迈小点 |
+| **Adam** | $w \leftarrow w - \eta\thinspace \hat m / (\sqrt{\hat v} + \epsilon)$ | 动量 + 每个参数自己的步长: 梯度又大又抖的参数, 步子迈小点 |
 | **AdamW** | Adam 再加 $- \eta \lambda w$ | 权重衰减跟梯度分开, 直接把权重往 0 拉 |
 | **Muon** | 把 2D 权重的更新矩阵正交化 | 比较新, 前沿规模在用 |
 
@@ -354,16 +354,16 @@ SGD ── + 动量 ── + 自适应学习率 (RMSProp/AdaGrad)
 $$
 \text{lr}(t) =
 \begin{cases}
-\dfrac{t}{T_{\text{warmup}}}\, \text{lr}_{\max} & t \le T_{\text{warmup}} \\[2ex]
-\text{lr}_{\min} + \tfrac12(\text{lr}_{\max}-\text{lr}_{\min})\Big(1+\cos\big(\pi\,\tfrac{t-T_{\text{warmup}}}{T-T_{\text{warmup}}}\big)\Big) & t > T_{\text{warmup}}
+\dfrac{t}{T _ {\text{warmup}}}\thinspace \text{lr} _ {\max} & t \le T _ {\text{warmup}} \cr
+\text{lr} _ {\min} + \tfrac12(\text{lr} _ {\max}-\text{lr} _ {\min})\Big(1+\cos\big(\pi\thinspace \tfrac{t-T _ {\text{warmup}}}{T-T _ {\text{warmup}}}\big)\Big) & t \gt  T _ {\text{warmup}}
 \end{cases}
 $$
 
-**符号速读:** $t$ 是当前步数. 前 $T_{\text{warmup}}$ 步从 0 线性爬到 $\text{lr}_{\max}$. 之后算"衰减进度" (0 到 1), 丢进 $\cos(\pi \cdot)$ 从 1 走到 −1, 再用 $\frac12(1+\cos)$ 变成从 1 平滑降到 0, 乘上最大最小值的差, 加回底线 $\text{lr}_{\min}$.
+**符号速读:** $t$ 是当前步数. 前 $T _ {\text{warmup}}$ 步从 0 线性爬到 $\text{lr} _ {\max}$. 之后算"衰减进度" (0 到 1), 丢进 $\cos(\pi \cdot)$ 从 1 走到 −1, 再用 $\frac12(1+\cos)$ 变成从 1 平滑降到 0, 乘上最大最小值的差, 加回底线 $\text{lr} _ {\min}$.
 
 ![预热学习率](zhihu/images/035f514e01ed.jpg)
 
-*为啥要预热? 刚开始梯度又大又不靠谱 (尤其是 [Post-LN](#pre-norm-还是-post-norm)), 先小步走, 等 AdamW 的统计量稳下来再加速.*
+为啥要预热? 刚开始梯度又大又不靠谱 (尤其是 [Post-LN](#pre-norm-还是-post-norm)), 先小步走, 等 AdamW 的统计量稳下来再加速.
 
 ### Workshop 例子: 用 MLP 算 `A*B % C`
 
@@ -411,18 +411,18 @@ $$
 
 ### 初始化
 
-**目标:** 第 0 步时, 每层输出的"音量"别越传越大或越传越小. 一个神经元有 $n_{in}$ 个输入时:
+**目标:** 第 0 步时, 每层输出的"音量"别越传越大或越传越小. 一个神经元有 $n _ {in}$ 个输入时:
 
 $$
-\text{Var}(z) = n_{in}\,\text{Var}(w)\,\text{Var}(x)
+\text{Var}(z) = n _ {in}\thinspace \text{Var}(w)\thinspace \text{Var}(x)
 $$
 
-**符号速读:** $\text{Var}$ 是方差, 衡量信号的"音量". $z = \sum w_i x_i$ 是 $n_{in}$ 项相加, 每项贡献 $\text{Var}(w)\text{Var}(x)$, 所以乘上 $n_{in}$. 想让输出音量等于输入, 就让 $n_{in}\text{Var}(w) = 1$.
+**符号速读:** $\text{Var}$ 是方差, 衡量信号的"音量". $z = \sum w_i x_i$ 是 $n _ {in}$ 项相加, 每项贡献 $\text{Var}(w)\text{Var}(x)$, 所以乘上 $n _ {in}$. 想让输出音量等于输入, 就让 $n _ {in}\text{Var}(w) = 1$.
 
 | 激活 | 初始化 | 标准差 | 为啥 |
 | --- | --- | --- | --- |
-| ReLU | **He / Kaiming** | $\sqrt{2/n_{in}}$ | ReLU 砍掉一半, 方差减半, 所以乘 2 补回来 |
-| Tanh / Sigmoid | **Xavier / Glorot** | $\sqrt{2/(n_{in}+n_{out})}$ | 兼顾前向 ($n_{in}$) 和反向 ($n_{out}$), 取平均 |
+| ReLU | **He / Kaiming** | $\sqrt{2/n _ {in}}$ | ReLU 砍掉一半, 方差减半, 所以乘 2 补回来 |
+| Tanh / Sigmoid | **Xavier / Glorot** | $\sqrt{2/(n _ {in}+n _ {out})}$ | 兼顾前向 ($n _ {in}$) 和反向 ($n _ {out}$), 取平均 |
 
 > 初始化错了, 激活值层层放大 💥 或缩到 0 🕳️. 跟注意力里 [÷√d_k](#为啥要除以-d_k) 是同一个思路.
 
@@ -469,9 +469,9 @@ $$
 ![Post-LN (a) 和 Pre-LN (b)](zhihu/images/90dbd1c5c910.jpg)
 
 $$
-\text{Post-LN: } x_{l+1} = \text{LN}\big(x_l + F(x_l)\big)
+\text{Post-LN: } x _ {l+1} = \text{LN}\big(x_l + F(x_l)\big)
 \qquad\qquad
-\text{Pre-LN: } x_{l+1} = x_l + F\big(\text{LN}(x_l)\big)
+\text{Pre-LN: } x _ {l+1} = x_l + F\big(\text{LN}(x_l)\big)
 $$
 
 **符号速读:** $x_l$ 是进入第 $l$ 层的"残差流", $F$ 是子层 (注意力或 FFN). 两个公式唯一的区别就是 LN 放哪: Post-LN 把整个和都包起来, 主干道每层被缩放一次; Pre-LN 只给 $F$ 的输入做归一化, $x_l$ 原封不动加过去, 主干道是畅通的.
@@ -597,7 +597,7 @@ GPT-2 词表 **50,257** 个 token, OpenAI 的分词库叫 `tiktoken`.
 **WordPiece** 不看"谁最常见", 看"合并后语料似然涨得最多":
 
 $$
-\text{score}(x, y) = \log \frac{P(xy)}{P(x)\,P(y)}
+\text{score}(x, y) = \log \frac{P(xy)}{P(x)\thinspace P(y)}
 $$
 
 **符号速读:** $x, y$ 是相邻的两个子词, $xy$ 是合并后的. 分母 $P(x)P(y)$ 是"假如它俩互不相干, 碰巧挨着的概率". 比值大于 1 说明它俩比碰巧更爱一起出现. 取 log 就等于合并前后的对数似然差.
@@ -607,7 +607,7 @@ $$
 **Unigram** 反着来: 先建一张大词表, 每轮删掉"删了损失最小"的子词. 同一个词可能有好几种切法, 挑概率最大的:
 
 $$
-P(\vec{x}) = \prod_{i=1}^{m} P(x_i), \qquad \vec{x}^* = \arg\max_{\vec{x} \in \mathcal{S}(X)} P(\vec{x})
+P(\vec{x}) = \prod _ {i=1}^{m} P(x_i), \qquad \vec{x}^ * = \arg\max _ {\vec{x} \in \mathcal{S}(X)} P(\vec{x})
 $$
 
 **符号速读:** $\vec{x}$ 是一种切法 (子词序列), 共 $m$ 块. 假设每块互相独立, 整体概率就是各块概率连乘. $\mathcal{S}(X)$ 是所有合法切法, $\arg\max$ 取让概率最大的那种切法 (不是最大值本身), 星号表示最优. 连乘每多一块就多乘一个小于 1 的数, 所以天然偏爱块少, 块常见的切法.
@@ -624,7 +624,7 @@ $$
 
 ![BERT 输入 = token + segment + position](zhihu/images/393335f7e21a.jpg)
 
-*图源: [BERT 笔记](<zhihu/BERT学习笔记一: 基于论文精读的模型详解.md>).*
+图源: [BERT 笔记](<zhihu/BERT学习笔记一: 基于论文精读的模型详解.md>).
 
 ### 位置编码: 从 one-hot 到 RoPE
 
@@ -632,7 +632,7 @@ $$
 
 ![self-attention 同时看所有 token, 不知道谁先谁后](zhihu/images/2a2d39a8e155.jpg)
 
-*每个输出 $b_i$ 同时看 $a_1..a_4$, 没人告诉它 $a_2$ 在 $a_1$ 后面. 图源: [位置编码笔记](<zhihu/Transformer学习笔记一: Positional Encoding (位置编码).md>).*
+每个输出 $b_i$ 同时看 $a_1..a_4$, 没人告诉它 $a_2$ 在 $a_1$ 后面. 图源: [位置编码笔记](<zhihu/Transformer学习笔记一: Positional Encoding (位置编码).md>).
 
 好的位置信号要满足: **有界**, **每个位置独一无二**, **平滑** (挨着的位置长得像), **不同长度下一致**, **能外推**到没见过的长度. 下面每一步都多满足一条.
 
@@ -651,26 +651,25 @@ $$
 **直觉:** 不学表, 直接用一组不同频率的 sin / cos **算**出来, 像一个有很多指针, 转速各不相同的表.
 
 $$
-PE_{(t,\,2k)} = \sin(\omega_k t), \qquad PE_{(t,\,2k+1)} = \cos(\omega_k t), \qquad \omega_k = \frac{1}{10000^{2k/d}}
+PE _ {(t,\thinspace 2k)} = \sin(\omega_k t), \qquad PE _ {(t,\thinspace 2k+1)} = \cos(\omega_k t), \qquad \omega_k = \frac{1}{10000^{2k/d}}
 $$
 
 **符号速读:** $t$ 是位置, 乘上频率 $\omega_k$ 就变成一个角度. 维度两两一组 (第 $2k$ 和 $2k+1$ 维), 同一组共用一个频率, 偶数维用 sin, 奇数维用 cos. $k$ 越大, $\omega_k$ 越小, 转得越慢; 指数 $2k/d$ 从 0 走到 1, 频率从 1 一路降到 1/10000.
 
 ![每一维像一个旋钮, 越往右转得越慢](zhihu/images/e00f72c5405e.jpg)
 
-*每行是一个位置, 每列是一维. 跟二进制计数很像: 低位翻得快, 高位翻得慢, 只不过是平滑地变.*
+每行是一个位置, 每列是一维. 跟二进制计数很像: 低位翻得快, 高位翻得慢, 只不过是平滑地变.
 
 ![正弦位置编码热力图, 50 个位置 × 128 维](zhihu/images/ce98128f8b77.jpg)
 
-*左边几列随位置快速变化, 右边几列几乎不动. 每一行都是一个独一无二的"条形码", 值都在 [-1, 1] 之间.*
+左边几列随位置快速变化, 右边几列几乎不动. 每一行都是一个独一无二的"条形码", 值都在 [-1, 1] 之间.
 
 **为啥 sin 和 cos 要成对?** 这样"挪位置"就变成了**旋转**. 从 $t$ 挪到 $t + \Delta$, 是一个跟 $t$ 无关的固定线性变换:
 
 $$
-\begin{pmatrix} \sin\omega(t+\Delta) \\ \cos\omega(t+\Delta) \end{pmatrix}
-=
-\begin{pmatrix} \cos\omega\Delta & \sin\omega\Delta \\ -\sin\omega\Delta & \cos\omega\Delta \end{pmatrix}
-\begin{pmatrix} \sin\omega t \\ \cos\omega t \end{pmatrix}
+\begin{pmatrix} \sin\omega(t+\Delta) \cr \cos\omega(t+\Delta) \end{pmatrix} =
+\begin{pmatrix} \cos\omega\Delta & \sin\omega\Delta \cr -\sin\omega\Delta & \cos\omega\Delta \end{pmatrix}
+\begin{pmatrix} \sin\omega t \cr \cos\omega t \end{pmatrix}
 $$
 
 **符号速读:** 右边是位置 $t$ 的那一对值, 左边是位置 $t+\Delta$ 的. 中间的矩阵是"转 $\omega\Delta$ 度", 只跟偏移 $\Delta$ 有关, 跟 $t$ 无关, 所以同一个矩阵能把**任何**位置往后挪 $\Delta$. 矩阵的样子来自和角公式.
@@ -678,14 +677,14 @@ $$
 推论: 两个位置的点积**只跟距离有关**:
 
 $$
-PE_t^\top PE_{t+\Delta} = \sum_k \cos(\omega_k \Delta)
+PE_t^\top PE _ {t+\Delta} = \sum_k \cos(\omega_k \Delta)
 $$
 
 **符号速读:** 左边是两个位置向量的点积 (相似度). 每一对贡献 $\sin\cdot\sin + \cos\cdot\cos = \cos(\text{角度差})$. $t$ 消掉了, 只剩 $\Delta$. 而 cos 是偶函数, $+\Delta$ 和 $-\Delta$ 结果一样: 知道多远, 不知道哪边.
 
 ![点积随偏移量 k 的变化](zhihu/images/a954d3bfc60b.jpg)
 
-*左右对称: 知道"多远", 不知道"前还是后". 而且位置编码一乘上 $W_Q, W_K$, 连这个干净的距离规律也被打乱了. 这就是 RoPE 要解决的.*
+左右对称: 知道"多远", 不知道"前还是后". 而且位置编码一乘上 $W_Q, W_K$, 连这个干净的距离规律也被打乱了. 这就是 RoPE 要解决的.
 
 #### 第 4 步: RoPE 旋转位置编码 (现在的主流)
 
@@ -701,10 +700,10 @@ $$
 $$
 q_m = R_m W_Q x_m, \quad k_n = R_n W_K x_n
 \quad\Longrightarrow\quad
-q_m^\top k_n = x_m^\top W_Q^\top\, R_{n-m}\, W_K\, x_n
+q_m^\top k_n = x_m^\top W_Q^\top\thinspace  R _ {n-m}\thinspace  W_K\thinspace  x_n
 $$
 
-**符号速读:** $x_m, x_n$ 是位置 $m$ 和 $n$ 的 token. 先投影 ($W_Q, W_K$), 再旋转 ($R_m, R_n$). 关键一步 $R_m^\top R_n = R_{n-m}$: 先倒转 $m$ 度再正转 $n$ 度, 等于只转了 $n-m$ 度. 于是注意力分数里只剩**相对距离** $n-m$, 而且它夹在 $W_Q^\top$ 和 $W_K$ 中间, 投影打不乱它.
+**符号速读:** $x_m, x_n$ 是位置 $m$ 和 $n$ 的 token. 先投影 ($W_Q, W_K$), 再旋转 ($R_m, R_n$). 关键一步 $R_m^\top R_n = R _ {n-m}$: 先倒转 $m$ 度再正转 $n$ 度, 等于只转了 $n-m$ 度. 于是注意力分数里只剩**相对距离** $n-m$, 而且它夹在 $W_Q^\top$ 和 $W_K$ 中间, 投影打不乱它.
 
 **为啥转比加好?**
 
@@ -754,7 +753,7 @@ Q/K/V 是**同一个输入的三种视角**, 由三个小线性层产生.
 
 ![token a² 的 q² 跟每个 key 比, 得到权重 α′, 再加权求和 value](zhihu/images/1ecfc3b9b900.jpg)
 
-*$a^2$ 的 query 跟 $k^1..k^4$ 逐个比, 得到权重 $\alpha'_{2,i}$, 输出就是加权和 $b^2 = \sum_i \alpha'_{2,i} v^i$. 图源: [Self-Attention 笔记](<zhihu/Transformer学习笔记二: Self-Attention (自注意力机制).md>).*
+$a^2$ 的 query 跟 $k^1..k^4$ 逐个比, 得到权重 $\alpha' _ {2,i}$, 输出就是加权和 $b^2 = \sum_i \alpha' _ {2,i} v^i$. 图源: [Self-Attention 笔记](<zhihu/Transformer学习笔记二: Self-Attention (自注意力机制).md>).
 
 #### Q, K, V 从哪来: 三次线性投影
 
@@ -762,7 +761,7 @@ $$
 Q = XW^Q, \qquad K = XW^K, \qquad V = XW^V
 $$
 
-**符号速读:** $X$ 是输入, 每行一个 token, 形状 [$n$, $d_{\text{model}}$]. 三个 $W$ 是学出来的矩阵, 上标 Q/K/V 只是名字, 不是次方. $X$ 写在左边, 意思是每一行 (每个 token) 都乘同一个矩阵, 所有 token 用同一副眼镜.
+**符号速读:** $X$ 是输入, 每行一个 token, 形状 [$n$, $d _ {\text{model}}$]. 三个 $W$ 是学出来的矩阵, 上标 Q/K/V 只是名字, 不是次方. $X$ 写在左边, 意思是每一行 (每个 token) 都乘同一个矩阵, 所有 token 用同一副眼镜.
 
 ![X 乘 W^Q, W^K, W^V 得到 Q, K, V](zhihu/images/6c4e61c48ddf.jpg)
 
@@ -789,7 +788,7 @@ Q/K/V 跟输入形状一样 (`[3 × 4]`), 但每一行的含义变了.
 ### 缩放点积注意力
 
 $$
-\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
+\text{Attention}(Q, K, V) = \text{softmax}\negthinspace \left(\frac{QK^\top}{\sqrt{d_k}}\right) V
 $$
 
 **符号速读:** $QK^\top$ 是一张 [$n$, $n$] 的表, 每个 query 跟每个 key 都点积一次 (转置 $K^\top$ 就是为了凑出这张表). 除以 $\sqrt{d_k}$ 把分数压回正常大小. softmax 按**行**做, 每个 query 的权重加起来等于 1. 最后乘 $V$, 就是按权重把各 token 的内容混在一起.
@@ -804,14 +803,14 @@ $$
 
 ![softmax(QKᵀ/√d_k) 得到 n×n 分数矩阵, 再乘 V](zhihu/images/fe757a3975b1.jpg)
 
-单看一个 token, 就是上面那张图: $b_i = \sum_j \alpha_{ij} v_j$, 其中 $\alpha_{ij}$ 是 token $i$ 对 token $j$ 的关注度. `Q·Kᵀ` 这张表就是大家常看到的注意力热力图.
+单看一个 token, 就是上面那张图: $b_i = \sum_j \alpha _ {ij} v_j$, 其中 $\alpha _ {ij}$ 是 token $i$ 对 token $j$ 的关注度. `Q·Kᵀ` 这张表就是大家常看到的注意力热力图.
 
 #### 为啥要除以 √d_k
 
 假设 $q$ 和 $k$ 的每一维都大致独立, 均值 0, 方差 1. 点积是 $d_k$ 项相加:
 
 $$
-q \cdot k = \sum_{m=1}^{d_k} q_m k_m \quad\Rightarrow\quad \text{Var}(q \cdot k) = d_k
+q \cdot k = \sum _ {m=1}^{d_k} q_m k_m \quad\Rightarrow\quad \text{Var}(q \cdot k) = d_k
 $$
 
 **符号速读:** $q_m k_m$ 是第 $m$ 维的乘积 (这里 $m$ 是维度编号, 不是位置), 每项方差是 1, 加 $d_k$ 项方差就是 $d_k$.
@@ -823,16 +822,16 @@ $d_k = 64$ 时, 分数的标准差是 8 → softmax 几乎变成 one-hot → 梯
 解码器 (GPT) 预测第 $t$ 个 token 时只能看 $\le t$ 的. 所以在 softmax 之前加一个遮罩 $M$: 允许看的地方是 0, 未来的位置是 $-\infty$.
 
 $$
-\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V,
+\text{Attention}(Q,K,V) = \text{softmax}\negthinspace \left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V,
 \qquad
-M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}
+M _ {ij} = \begin{cases} 0 & j \le i \cr -\infty & j \gt  i \end{cases}
 $$
 
-**符号速读:** 行号 $i$ 是"谁在看" (query 的位置), 列号 $j$ 是"被看的" (key 的位置). $j \le i$ 是过去或自己, 加 0 不变. $j > i$ 是未来, 加 $-\infty$, exp 一下就是 0. 遮罩加在缩放之后, softmax 之前, 这样剩下的权重还能加起来等于 1.
+**符号速读:** 行号 $i$ 是"谁在看" (query 的位置), 列号 $j$ 是"被看的" (key 的位置). $j \le i$ 是过去或自己, 加 0 不变. $j \gt  i$ 是未来, 加 $-\infty$, exp 一下就是 0. 遮罩加在缩放之后, softmax 之前, 这样剩下的权重还能加起来等于 1.
 
 ![因果遮罩: 1 标出的未来位置被换成一个超大的负数](zhihu/images/138a5506a098.jpg)
 
-*第 $i$ 行是第 $i$ 个 token. 右上三角 (标 1 的) 是未来, 分数被换成 $-\infty$ (代码里用 `-1e9`), softmax 后就是 0.*
+第 $i$ 行是第 $i$ 个 token. 右上三角 (标 1 的) 是未来, 分数被换成 $-\infty$ (代码里用 `-1e9`), softmax 后就是 0.
 
 就这一个三角, 让模型成了 **[自回归](#自回归生成-大模型怎么说话)** 的. 而且训练时能**所有位置并行**算 loss, 每个位置又只看得到自己的过去.
 
@@ -841,11 +840,11 @@ $$
 同时跑 $h$ 个"头", 每个头有自己的一套小 $W^Q_i, W^K_i, W^V_i$, 最后拼起来再乘 $W^O$:
 
 $$
-\text{head}_i = \text{Attention}(XW_i^Q,\, XW_i^K,\, XW_i^V), \qquad
-\text{MultiHead}(X) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\, W^O
+\text{head} _ i = \text{Attention}(XW_i^Q,\thinspace  XW_i^K,\thinspace  XW_i^V), \qquad
+\text{MultiHead}(X) = \text{Concat}(\text{head} _ 1, \dots, \text{head} _ h)\thinspace  W^O
 $$
 
-**符号速读:** $i$ 是第几个头, 每个头有自己的投影矩阵, 所以能盯不同的模式. Concat 是把各个头的输出左右拼起来. $W^O$ 把拼好的结果再混一遍, 让头之间交换信息. 每个头宽 $d_k = d_{\text{model}} / h$, 所以总计算量跟一个大头一样.
+**符号速读:** $i$ 是第几个头, 每个头有自己的投影矩阵, 所以能盯不同的模式. Concat 是把各个头的输出左右拼起来. $W^O$ 把拼好的结果再混一遍, 让头之间交换信息. 每个头宽 $d_k = d _ {\text{model}} / h$, 所以总计算量跟一个大头一样.
 
 ![8 头注意力: 拆开, 各算各的, 拼起来, 乘 W^O](zhihu/images/696dfd8df49b.jpg)
 
@@ -882,7 +881,7 @@ h = x + \text{MHA}\big(\text{RMSNorm}(x)\big), \qquad
 \text{out} = h + \text{FFN}\big(\text{RMSNorm}(h)\big)
 $$
 
-**符号速读:** $x$ 是进来的残差流. MHA 是多头注意力, 负责 token **之间**交流; FFN 负责**每个 token 自己**消化. 这里的 $h$ 是中间结果, 不是头数. 两个 "$+$" 都是残差.
+**符号速读:** $x$ 是进来的残差流. MHA 是多头注意力, 负责 token **之间**交流; FFN 负责**每个 token 自己**消化. 这里的 $h$ 是中间结果, 不是头数. 两个加号都是残差.
 
 整个模型最后: `RMSNorm → 输出层 → softmax → 下一个 token 的概率`.
 
@@ -891,10 +890,10 @@ $$
 每个 block 里的 FFN 就是一个**对每个 token 单独做的两层 [MLP](#mlp-隐藏层--激活层)**. 模型大部分参数和"知识"都在这.
 
 $$
-\text{FFN}(x) = \text{GELU}(x W_{\text{up}} + b_1)\, W_{\text{down}} + b_2
+\text{FFN}(x) = \text{GELU}(x W _ {\text{up}} + b_1)\thinspace  W _ {\text{down}} + b_2
 $$
 
-**符号速读:** $x$ 是一个 token 的向量. $W_{\text{up}}$ 把它撑宽 (升维), GELU 是夹在中间的激活, $W_{\text{down}}$ 再压回原来的宽度. $b_1, b_2$ 是偏置 (Llama 直接不要偏置).
+**符号速读:** $x$ 是一个 token 的向量. $W _ {\text{up}}$ 把它撑宽 (升维), GELU 是夹在中间的激活, $W _ {\text{down}}$ 再压回原来的宽度. $b_1, b_2$ 是偏置 (Llama 直接不要偏置).
 
 ```text
    x: [d_model]
@@ -918,14 +917,14 @@ $$
 普通 FFN: `ReLU(x · W_up) · W_down`, 两个矩阵. SwiGLU (Llama 等):
 
 $$
-\text{FFN}_{\text{SwiGLU}}(x) = \big(\text{Swish}(xW_{\text{gate}}) \odot xW_{\text{up}}\big)\, W_{\text{down}}, \qquad \text{Swish}(z) = z\,\sigma(z)
+\text{FFN} _ {\text{SwiGLU}}(x) = \big(\text{Swish}(xW _ {\text{gate}}) \odot xW _ {\text{up}}\big)\thinspace  W _ {\text{down}}, \qquad \text{Swish}(z) = z\thinspace \sigma(z)
 $$
 
-**符号速读:** 同一个 $x$ 走两条路: $W_{\text{gate}}$ 那条过 Swish, 算出每个特征的"门开多大"; $W_{\text{up}}$ 那条是内容. $\odot$ 逐元素相乘, 第 $j$ 个门管第 $j$ 个特征. 最后 $W_{\text{down}}$ 压回去. Swish 是平滑版的 ReLU, 里面的 $\sigma$ 是 sigmoid.
+**符号速读:** 同一个 $x$ 走两条路: $W _ {\text{gate}}$ 那条过 Swish, 算出每个特征的"门开多大"; $W _ {\text{up}}$ 那条是内容. $\odot$ 逐元素相乘, 第 $j$ 个门管第 $j$ 个特征. 最后 $W _ {\text{down}}$ 压回去. Swish 是平滑版的 ReLU, 里面的 $\sigma$ 是 sigmoid.
 
 门控能**学会每个 token 该放哪些特征过去**, 比普通 ReLU / GELU 更挑剔.
 
-**11008 是咋来的:** 三个矩阵比两个多 50% 参数, 所以把中间宽度缩小, 保持总参数不变: $3 \cdot d \cdot d_{ff} = 2 \cdot d \cdot 4d$, 解出 $d_{ff} = \tfrac{8}{3}d$. $d = 4096$ 时约 10923, 再向上取到对硬件友好的整数, 就是 **11008**.
+**11008 是咋来的:** 三个矩阵比两个多 50% 参数, 所以把中间宽度缩小, 保持总参数不变: $3 \cdot d \cdot d _ {ff} = 2 \cdot d \cdot 4d$, 解出 $d _ {ff} = \tfrac{8}{3}d$. $d = 4096$ 时约 10923, 再向上取到对硬件友好的整数, 就是 **11008**.
 
 #### 参数账 (GPT-2 small, 每层)
 
@@ -955,10 +954,10 @@ FFN 占了每个 block **2/3 的参数**. 大家说"大模型主要是 MLP, 用�
 | --- | --- | --- |
 | 注意力 | 双向, 左右都看 | 因果, 只看左边 |
 | 预训练任务 | **完形填空 (MLM):** 盖住 15% 的 token 让它猜 (外加下一句预测) | **预测下一个 token** |
-| 损失 | $-\sum_{i \in \text{被盖}} \log P(x_i \mid \tilde{x})$ | $-\sum_t \log P(x_t \mid x_{<t})$ |
+| 损失 | $-\sum _ {i \in \text{被盖}} \log P(x_i \mid \tilde{x})$ | $-\sum_t \log P(x_t \mid x _ {\lt t})$ |
 | 擅长 | 理解 (分类, 检索, 向量) | 生成 (聊天, 写代码) |
 
-**符号速读:** $\tilde{x}$ 是被挖了洞的输入 (波浪号表示"改过的版本"), BERT 能看到洞的两边. GPT 只能看 $x_{<t}$, 也就是左边.
+**符号速读:** $\tilde{x}$ 是被挖了洞的输入 (波浪号表示"改过的版本"), BERT 能看到洞的两边. GPT 只能看 $x _ {\lt t}$, 也就是左边.
 
 BERT 盖词的小心机: 选中的 15% 里, 80% 换成 `[MASK]`, 10% 换成随机词, 10% 不变. 因为微调时根本不会出现 `[MASK]`, 不能让模型依赖它. 图源: [BERT 笔记](<zhihu/BERT学习笔记一: 基于论文精读的模型详解.md>), [GPT 笔记](<zhihu/ChatGPT技术解析系列之: GPT1, GPT2与GPT3.md>).
 
@@ -993,11 +992,11 @@ BERT 盖词的小心机: 选中的 15% 里, 80% 换成 `[MASK]`, 10% 换成随�
 
 ![零样本 vs 单样本 vs 少样本](zhihu/images/4d329b7d29be.jpg)
 
-*零样本 = 只给任务描述; 少样本 = 描述 + 几个例子. 全都写在 prompt 里, **不更新权重**. 图源: [GPT 笔记](<zhihu/ChatGPT技术解析系列之: GPT1, GPT2与GPT3.md>).*
+零样本 = 只给任务描述; 少样本 = 描述 + 几个例子. 全都写在 prompt 里, **不更新权重**. 图源: [GPT 笔记](<zhihu/ChatGPT技术解析系列之: GPT1, GPT2与GPT3.md>).
 
 ### 微调: SFT 和 LoRA
 
-**SFT (监督微调)** = loss 还是预测下一个 token, 但数据换成精挑细选的 `(问题, 理想回答)`, 等于"告诉模型好回答长啥样". InstructGPT 用了约 1.3 万条人写的示范. (GPT-1 微调时还留了一点语言模型 loss 当辅助: $L = L_{\text{任务}} + \lambda L_{\text{LM}}$, $\lambda$ 是辅助项的权重.)
+**SFT (监督微调)** = loss 还是预测下一个 token, 但数据换成精挑细选的 `(问题, 理想回答)`, 等于"告诉模型好回答长啥样". InstructGPT 用了约 1.3 万条人写的示范. (GPT-1 微调时还留了一点语言模型 loss 当辅助: $L = L _ {\text{任务}} + \lambda L _ {\text{LM}}$, $\lambda$ 是辅助项的权重.)
 
 | 方法 | 干啥 | 成本 |
 | --- | --- | --- |
@@ -1019,7 +1018,7 @@ $d = k = 4096$, $r = 8$ 时: 要训练的参数是 $2 \cdot 4096 \cdot 8 = 65{,}
 
 ![InstructGPT 三步: SFT, 奖励模型, PPO](zhihu/images/52c847ffe406.jpg)
 
-*第 1 步 = [SFT](#微调-sft-和-lora). 第 2 步 = 用人类排序训练一个奖励模型. 第 3 步 = 用 PPO 让模型去拿高分. 图源: [InstructGPT 笔记](<zhihu/ChatGPT技术解析系列之: 训练框架InstructGPT.md>).*
+第 1 步 = [SFT](#微调-sft-和-lora). 第 2 步 = 用人类排序训练一个奖励模型. 第 3 步 = 用 PPO 让模型去拿高分. 图源: [InstructGPT 笔记](<zhihu/ChatGPT技术解析系列之: 训练框架InstructGPT.md>).
 
 **强化学习术语, 对到大模型上:**
 
@@ -1035,32 +1034,32 @@ $d = k = 4096$, $r = 8$ 时: 要训练的参数是 $2 \cdot 4096 \cdot 8 = 65{,}
 **第 2 步: 奖励模型.** 人给 $K$ 个回答排序, 每一对 (赢的 $y_w$, 输的 $y_l$) 都是一条训练数据:
 
 $$
-\mathcal{L}_{\text{RM}}(\theta) = -\,\mathbb{E}_{(x,\, y_w,\, y_l)}\Big[\log \sigma\big(r_\theta(x, y_w) - r_\theta(x, y_l)\big)\Big]
+\mathcal{L} _ {\text{RM}}(\theta) = -\thinspace \mathbb{E} _ {(x,\thinspace  y_w,\thinspace  y_l)}\Big[\log \sigma\big(r _ \theta(x, y_w) - r _ \theta(x, y_l)\big)\Big]
 $$
 
-**符号速读:** $x$ 是 prompt, $r_\theta(x, y)$ 是奖励模型给回答 $y$ 打的分. 只看两个分数的**差**, 所有分数一起加个常数不影响. $\sigma$ (sigmoid) 把分差变成"人更喜欢 $y_w$ 的概率". 前面的 $-\log$ 让它变成交叉熵, $\mathbb{E}$ 是对所有比较对取平均.
+**符号速读:** $x$ 是 prompt, $r _ \theta(x, y)$ 是奖励模型给回答 $y$ 打的分. 只看两个分数的**差**, 所有分数一起加个常数不影响. $\sigma$ (sigmoid) 把分差变成"人更喜欢 $y_w$ 的概率". 前面的 $-\log$ 让它变成交叉熵, $\mathbb{E}$ 是对所有比较对取平均.
 
 直觉: 就是在成对比较上做 [交叉熵](#损失函数).
 
 **第 3 步: PPO, 加一根 KL 缰绳.** 要高分, 但别离 SFT 模型太远 (不然会学会钻奖励模型的空子):
 
 $$
-\text{objective}(\phi) = \mathbb{E}_{(x,y) \sim \pi_\phi^{\text{RL}}}\Big[r_\theta(x,y) - \beta \log \frac{\pi_\phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)}\Big] + \gamma\, \mathbb{E}_{x \sim D_{\text{pretrain}}}\big[\log \pi_\phi^{\text{RL}}(x)\big]
+\text{objective}(\phi) = \mathbb{E} _ {(x,y) \sim \pi _ \phi^{\text{RL}}}\Big[r _ \theta(x,y) - \beta \log \frac{\pi _ \phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)}\Big] + \gamma\thinspace \mathbb{E} _ {x \sim D _ {\text{pretrain}}}\big[\log \pi _ \phi^{\text{RL}}(x)\big]
 $$
 
-**符号速读:** $\pi_\phi^{\text{RL}}$ 是正在训练的模型, $\pi^{\text{SFT}}$ 是冻住的 SFT 模型. $(x, y) \sim \pi^{\text{RL}}$ 表示回答是当前模型自己生成的. 三项分别是:
+**符号速读:** $\pi _ \phi^{\text{RL}}$ 是正在训练的模型, $\pi^{\text{SFT}}$ 是冻住的 SFT 模型. $(x, y) \sim \pi^{\text{RL}}$ 表示回答是当前模型自己生成的. 三项分别是:
 
-- 奖励分 $r_\theta$: 越高越好.
+- 奖励分 $r _ \theta$: 越高越好.
 - KL 惩罚: 对数比值衡量"新模型比 SFT 更偏爱这个回答多少", $\beta$ 控制管得多严.
-- 预训练项 ("ptx"): 在原始预训练数据 $D_{\text{pretrain}}$ 上的对数似然, $\gamma$ 是权重, 防止通用能力退化.
+- 预训练项 ("ptx"): 在原始预训练数据 $D _ {\text{pretrain}}$ 上的对数似然, $\gamma$ 是权重, 防止通用能力退化.
 
 **DPO** 省掉了单独的奖励模型和 PPO 循环, 直接把同样的成对比较塞进策略本身, 用"跟参考模型的对数概率比"当隐式奖励:
 
 $$
-\mathcal{L}_{\text{DPO}} = -\,\mathbb{E}\left[\log \sigma\!\left(\beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right)\right]
+\mathcal{L} _ {\text{DPO}} = -\thinspace \mathbb{E}\left[\log \sigma\negthinspace \left(\beta \log \frac{\pi _ \theta(y_w \mid x)}{\pi _ {\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi _ \theta(y_l \mid x)}{\pi _ {\text{ref}}(y_l \mid x)}\right)\right]
 $$
 
-**符号速读:** $\pi_\theta$ 是要训练的模型, $\pi_{\text{ref}}$ 是冻住的参考模型 (通常就是 SFT). $\beta \log \frac{\pi_\theta}{\pi_{\text{ref}}}$ 就是隐式奖励: 新模型比参考模型更偏爱这个回答多少. 赢的减输的, 套 sigmoid, 取 $-\log$, 跟 $\mathcal{L}_{\text{RM}}$ 长得一模一样.
+**符号速读:** $\pi _ \theta$ 是要训练的模型, $\pi _ {\text{ref}}$ 是冻住的参考模型 (通常就是 SFT). $\beta \log \frac{\pi _ \theta}{\pi _ {\text{ref}}}$ 就是隐式奖励: 新模型比参考模型更偏爱这个回答多少. 赢的减输的, 套 sigmoid, 取 $-\log$, 跟 $\mathcal{L} _ {\text{RM}}$ 长得一模一样.
 
 更简单, 更稳, 现在用得很多.
 
@@ -1071,7 +1070,7 @@ $$
 - **专项:** 代码, 数学, 推理. 代码常用 **pass@k**: 采样 $k$ 次, 至少有一次通过单元测试的概率. 实际做法是采 $n \ge k$ 个, 其中 $c$ 个对, 再估算:
 
 $$
-\text{pass@}k = \mathbb{E}_{\text{problems}}\left[1 - \frac{\binom{n-c}{k}}{\binom{n}{k}}\right]
+\text{pass@}k = \mathbb{E} _ {\text{problems}}\left[1 - \frac{\binom{n-c}{k}}{\binom{n}{k}}\right]
 $$
 
 **符号速读:** $\binom{n}{k}$ 是从 $n$ 个里挑 $k$ 个的方法数, $\binom{n-c}{k}$ 是全从 $n-c$ 个错的里挑的方法数. 相除 = "挑的 $k$ 个全错"的概率, 用 1 减掉就是"至少一个对". 最后对所有题目取平均.
@@ -1094,7 +1093,7 @@ $$
 数学上, 一句话的概率被拆成一串条件概率的连乘:
 
 $$
-P(x_1, x_2, \dots, x_n) = \prod_{t=1}^{n} P(x_t \mid x_1, \dots, x_{t-1})
+P(x_1, x_2, \dots, x_n) = \prod _ {t=1}^{n} P(x_t \mid x_1, \dots, x _ {t-1})
 $$
 
 **符号速读:** 左边是整句话的概率. 右边每一项是"已知前面这些词, 下一个是 $x_t$ 的概率", 正好是模型一次前向输出的东西. $\prod$ 是连乘. 两边取 $-\log$ 再除以 $n$, 就是 [语言模型的 loss](#损失函数).
@@ -1172,7 +1171,7 @@ $$
 
 **符号速读:** $K$ 是 GPU 数 (流水线级数), $M$ 是 micro-batch 数. 分子 $K-1$ 是流水线"灌满"和"排空"时必然的空等, 不随 $M$ 变. 分母 $K+M-1$ 是总步数, 随 $M$ 增大. 所以 $M$ 越大, 空转占比越小. $M=1$ 就退回朴素情况.
 
-$K = 4$ 时: $M = 1$ → 75%; $M = 16$ → $3/19 \approx 16\%$. GPipe 发现 $M \ge 4K$ 时 bubble 基本可以忽略.
+$K = 4$ 时: $M = 1$ → 75%; $M = 16$ → $3/19 \approx$ 16%. GPipe 发现 $M \ge 4K$ 时 bubble 基本可以忽略.
 
 **重计算 (activation checkpointing):** 反向传播要用每层的中间结果, 很吃显存. 干脆只存每段的输入, 反向时**重新跑一遍前向**算出来. 多花大约 30% 算力, 省下大量显存. (micro-batch 也是 [BatchNorm](#batchnorm--layernorm--rmsnorm-区别只在沿哪个方向平均) 在大规模训练里别扭, LayerNorm 却没事的原因.)
 
@@ -1196,14 +1195,14 @@ $K = 4$ 时: $M = 1$ → 75%; $M = 16$ → $3/19 \approx 16\%$. GPipe 发现 $M 
 | --- | --- | --- |
 | 一层网络 | $A^{[l]} = g(W^{[l]}A^{[l-1]} + b^{[l]})$ | [MLP](#mlp-隐藏层--激活层) |
 | Softmax | $e^{z_i} / \sum_j e^{z_j}$ | [Softmax](#softmax-分数变概率) |
-| 语言模型 loss | $-\frac{1}{T}\sum_t \log P(x_t \mid x_{<t})$ | [损失](#损失函数) |
+| 语言模型 loss | $-\frac{1}{T}\sum_t \log P(x_t \mid x _ {\lt t})$ | [损失](#损失函数) |
 | Softmax + 交叉熵的梯度 | $p - y$ | [损失](#损失函数) |
 | 梯度下降一步 | $w \leftarrow w - \eta \nabla_w \mathcal{L}$ | [优化器](#优化器) |
-| He 初始化 | $\text{std} = \sqrt{2/n_{in}}$ | [初始化](#初始化) |
+| He 初始化 | $\text{std} = \sqrt{2/n _ {in}}$ | [初始化](#初始化) |
 | LayerNorm | $\gamma \odot \frac{x-\mu}{\sqrt{\sigma^2+\epsilon}} + \beta$ | [归一化](#归一化) |
 | 残差 | $H(x) = F(x) + x$ | [残差](#残差连接) |
 | 正弦位置编码 | $\sin / \cos(t / 10000^{2k/d})$ | [位置编码](#第-3-步-正弦位置编码-原版-transformer) |
-| RoPE | $q_m^\top k_n = x_m^\top W_Q^\top R_{n-m} W_K x_n$ | [RoPE](#第-4-步-rope-旋转位置编码-现在的主流) |
+| RoPE | $q_m^\top k_n = x_m^\top W_Q^\top R _ {n-m} W_K x_n$ | [RoPE](#第-4-步-rope-旋转位置编码-现在的主流) |
 | 注意力 | $\text{softmax}(QK^\top/\sqrt{d_k} + M)V$ | [注意力](#缩放点积注意力) |
 | SwiGLU FFN | $(\text{Swish}(xW_g) \odot xW_u)W_d$ | [FFN](#swiglu-为啥是-3-个矩阵) |
 | LoRA | $W + BA$ | [微调](#微调-sft-和-lora) |

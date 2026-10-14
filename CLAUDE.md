@@ -14,7 +14,9 @@ Personal LLM study repo (notes + Colab notebooks). Not a library: no build, no t
 
 ## Conventions
 
-- Markdown math is KaTeX (Cursor/GitHub preview): `$…$` inline, `$$` on its own lines for display. No inline `$$…$$`, no Chinese text in math without `\text{}`.
+- Math must render in both Cursor (KaTeX) and GitHub (MathJax, after GFM parsing): `$…$` inline, `$$` on its own lines for display. No inline `$$…$$`; Chinese in math only via `\text{}`.
+- GitHub-safe math: no `\` + punctuation (use `\thinspace`, `\negthinspace`, `\cr`, `\lbrace` instead of `\,` `\!` `\\` `\{`; no `\%`, `\_`); `\lt`/`\gt` instead of `<`/`>`; spaces around `_`/`*` unless between two alphanumerics (`T _ {x}`); no math inside `*italic*`.
+- Display math: a formula on its own line goes in a `$$` block with a blank line before and after (multi-row `aligned`/`matrix` only render this way); no `$$` blocks inside list items; no lone `=` line inside. Inline `$` must not touch Chinese characters (`奖励 $R_t$`).
 - Keep EN and ZH overviews in sync when changing structure, formulas, or figures.
 - Link figures as `zhihu/images/…`; link zhihu articles with `<…>` (names have spaces, colons, parens).
 - Chinese text uses half-width punctuation followed by a space (`中文, 中文`, `中文: 中文`, `中文 (note)`), not `，：（）`.

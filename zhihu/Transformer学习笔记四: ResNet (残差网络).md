@@ -59,13 +59,17 @@ date: 2026-10-14
 
 如图所示的[三层神经网络](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=%E4%B8%89%E5%B1%82%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C&zhida_source=entity), 每一层的线性层和非线性层可以表示为:  
   
-$\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} \text{ (线性变化层)} \\ A^{[L]} &= g^{[L]}(Z^{[L]}) \text{ (非线性变化/激活函数层)} \end{aligned}$  
+$$
+\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} \text{ (线性变化层)} \cr  A^{[L]} &= g^{[L]}(Z^{[L]}) \text{ (非线性变化/激活函数层)} \end{aligned}
+$$
   
 假设现在要计算第一层 $W^{[1]}$ 的梯度, 那么根据[链式法则](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=%E9%93%BE%E5%BC%8F%E6%B3%95%E5%88%99&zhida_source=entity), 有:  
   
-$\begin{aligned} \frac{\partial LOSS}{\partial W^{[1]}} & = \frac{\partial LOSS}{\partial A^{[3]}}\frac{\partial A^{[3]}}{\partial Z^{[3]}}\frac{\partial Z^{[3]}}{\partial A^{[2]}}\frac{\partial A^{[2]}}{\partial Z^{[2]}}\frac{\partial Z^{[2]}}{\partial A^{[1]}}\frac{\partial A^{[1]}}{\partial Z^{[1]}}\frac{\partial Z^{[1]}}{\partial W^{[1]}}\\ & = \frac{\partial LOSS}{\partial A^{[3]}}{g^{[3]}}'W^{[3]}{g^{[2]}}'W^{[2]}{g^{[1]}}'\frac{\partial Z^{[1]}}{\partial W^{[1]}} \end{aligned}$  
+$$
+\begin{aligned} \frac{\partial LOSS}{\partial W^{[1]}} & = \frac{\partial LOSS}{\partial A^{[3]}}\frac{\partial A^{[3]}}{\partial Z^{[3]}}\frac{\partial Z^{[3]}}{\partial A^{[2]}}\frac{\partial A^{[2]}}{\partial Z^{[2]}}\frac{\partial Z^{[2]}}{\partial A^{[1]}}\frac{\partial A^{[1]}}{\partial Z^{[1]}}\frac{\partial Z^{[1]}}{\partial W^{[1]}}\cr & = \frac{\partial LOSS}{\partial A^{[3]}}{g^{[3]}}'W^{[3]}{g^{[2]}}'W^{[2]}{g^{[1]}}'\frac{\partial Z^{[1]}}{\partial W^{[1]}} \end{aligned}
+$$
   
-如果在神经网络中, 多层都满足 ${g^{[L]}}'W^{[L]} > 1$ , 则越往下的网络层的梯度越大, 这就造成了**梯度爆炸**的问题. 反之, 若多层都满足 ${g^{[L]}}'W^{[L]} < 1$ , 则越往下的网络层梯度越小, 引起**梯度消失**的问题. 而在深度学习网络中, 为了让模型学到更多非线性的特征, 在激活层往往使用例如 **[sigmoid](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=sigmoid&zhida_source=entity)** 这样的激活函数. 对sigmoid来说, **其导数的取值范围在** $(0,\frac{1}{4} ]$ , 在层数堆叠的情况下, 更容易出现梯度消失的问题.
+如果在神经网络中, 多层都满足 ${g^{[L]}}'W^{[L]} \gt 1$ , 则越往下的网络层的梯度越大, 这就造成了**梯度爆炸**的问题. 反之, 若多层都满足 ${g^{[L]}}'W^{[L]} \lt 1$ , 则越往下的网络层梯度越小, 引起**梯度消失**的问题. 而在深度学习网络中, 为了让模型学到更多非线性的特征, 在激活层往往使用例如 **[sigmoid](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=sigmoid&zhida_source=entity)** 这样的激活函数. 对sigmoid来说, **其导数的取值范围在** $(0,\frac{1}{4} ]$ , 在层数堆叠的情况下, 更容易出现梯度消失的问题.
 
   
 面对梯度消失/爆炸的情况, 可以通过Normalization等方式解决, 使得模型最终能够收敛.  
@@ -128,7 +132,7 @@ $\begin{aligned} \frac{\partial LOSS}{\partial W^{[1]}} & = \frac{\partial LOSS}
 
   
   
-蓝色星星 $\mathcal{f}^*$ 是"真正"拟合我们数据集的函数, 而 $\mathcal{F}_1 ,...,\mathcal{F}_6$ 表示分别表示不同层数的神经网络 (层数为1的, 层数为2的...). 在左边的构造方式中, 函数是非嵌套的, 可以发现6层神经网络可能比单层神经网络距离最优解更远. 而在右边的嵌套式构造中, 则保证了更多层的神经网络至少能取到更浅的神经网络的最优解. 受到这一思想的启发, 我们在深层网络中引入[残差模块](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=2&q=%E6%AE%8B%E5%B7%AE%E6%A8%A1%E5%9D%97&zhida_source=entity), 具体运作方式如下:  
+蓝色星星 $\mathcal{f}^ *$ 是"真正"拟合我们数据集的函数, 而 $\mathcal{F} _ 1 ,...,\mathcal{F} _ 6$ 表示分别表示不同层数的神经网络 (层数为1的, 层数为2的...). 在左边的构造方式中, 函数是非嵌套的, 可以发现6层神经网络可能比单层神经网络距离最优解更远. 而在右边的嵌套式构造中, 则保证了更多层的神经网络至少能取到更浅的神经网络的最优解. 受到这一思想的启发, 我们在深层网络中引入[残差模块](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=2&q=%E6%AE%8B%E5%B7%AE%E6%A8%A1%E5%9D%97&zhida_source=entity), 具体运作方式如下:  
 
 ![图片](images/4df520a1ba48.jpg)
 
@@ -142,7 +146,7 @@ $\mathcal{H}(X) = \mathcal{F}(X) + X$ (1)
 $\mathcal{F}(X)$ 就被称之为 **[残差函数](https://zhida.zhihu.com/search?content_id=190144936&content_type=Article&match_order=1&q=%E6%AE%8B%E5%B7%AE%E5%87%BD%E6%95%B0&zhida_source=entity) (residule function).** 在网络深层的时候, 在优化目标的约束下, 模型通过学习使得 $\mathcal{F}(X)$ 逼近0 **(residule learning)**, 让深层函数在学到东西的情况下, 又不会发生网络退化的问题.
 
   
-通过这样的构造方式, 让 $\mathcal{F}(X)$ 嵌套在了 $\mathcal{H}(X)$ 中, 这样跃层构造的方式也被称为**残差连接(residule connection)/ 跳跃连接(skip connection)/短路(shortcuts)**. 模型并不是严格的跨越2层, 可以根据需要跨越3, 4层进行连接. 同时, 等式 (1) 是在假设输入输出同维, 即 $\mathcal{F}(X)$ 和 $X$ 同维的情况, 不同维时, 只需要在 $X$ 前面增加一个转换矩阵 $W_{s}$ 即可.  
+通过这样的构造方式, 让 $\mathcal{F}(X)$ 嵌套在了 $\mathcal{H}(X)$ 中, 这样跃层构造的方式也被称为**残差连接(residule connection)/ 跳跃连接(skip connection)/短路(shortcuts)**. 模型并不是严格的跨越2层, 可以根据需要跨越3, 4层进行连接. 同时, 等式 (1) 是在假设输入输出同维, 即 $\mathcal{F}(X)$ 和 $X$ 同维的情况, 不同维时, 只需要在 $X$ 前面增加一个转换矩阵 $W _ {s}$ 即可.  
 
 ###   
 3.2 实验过程及结果

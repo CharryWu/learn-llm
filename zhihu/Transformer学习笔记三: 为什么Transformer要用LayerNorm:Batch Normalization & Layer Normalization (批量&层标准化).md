@@ -61,7 +61,9 @@ date: 2026-10-14
 Batch Normalization (以下简称BN) 的方法最早由[Ioffe&Szegedy](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1502.03167.pdf)在2015年提出, 主要用于解决在深度学习中产生的ICS ([Internal Covariate Shift](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Internal+Covariate+Shift&zhida_source=entity)) 的问题. 若模型输入层数据分布发生变化, 则模型在这波变化数据上的表现将有所波动, 输入层分布的变化称为Covariate Shift, 解决它的办法就是常说的[Domain Adaptation](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Domain+Adaptation&zhida_source=entity). 同理, 在深度学习中, 第L+1层的输入, 也可能随着第L层参数的变动, 而引起分布的变动. 这样每一层在训练时, 都要去适应这样的分布变化, 使得训练变得困难. 这种层间输入分布变动的情况, 就是Internal Covariate Shift. 而BN提出的初衷就是为了解决这一问题.
 
   
-$\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} \text{ (线性变化层)} \\ A^{[L]} &= g^{[L]}(Z^{[L]}) \text{ (非线性变化/激活函数层)} \end{aligned}$
+$$
+\begin{aligned} Z^{[L]} &= W^{[L]} * A^{[L-1]} + b^{[L]} \text{ (线性变化层)} \cr  A^{[L]} &= g^{[L]}(Z^{[L]}) \text{ (非线性变化/激活函数层)} \end{aligned}
+$$
 
 (ICS: 随着梯度下降的进行, $W^{[L]}$ 和 $b{[L]}$ 都会被更新, 则 $Z^{[L]}$ 的分布改变, 进而影响 $A^{[L]}$ 分布, 也就是第L+1层的输出)  
 
@@ -134,7 +136,9 @@ BN的范围: 对蓝色部分求均值和方差
 假设一个batch中有m个样本, 则在神经网络的某一层中, 我们记第i个样本在改层第j个神经元中, 经过线性变换后的输出为 $Z^i_j$ , 则BN的过程可以写成 (图中的每一个红色方框):
 
   
-$\begin{aligned} \mu_j &= \frac{1}{m} \sum_{i=1}^{m} Z^i_j \\ \sigma^2_j &= \frac{1}{m} \sum_{i=1}^{m} (Z^i_j - \mu_j)^2 \\ \tilde{Z_j} &= \gamma_{j}\frac{Z_j - \mu_j}{\sqrt{\sigma^2_j + \epsilon}} + \beta_{j} \end{aligned}$
+$$
+\begin{aligned} \mu_j &= \frac{1}{m} \sum _ {i=1}^{m} Z^i_j \cr \sigma^2_j &= \frac{1}{m} \sum _ {i=1}^{m} (Z^i_j - \mu_j)^2 \cr \tilde{Z_j} &= \gamma _ {j}\frac{Z_j - \mu_j}{\sqrt{\sigma^2_j + \epsilon}} + \beta _ {j} \end{aligned}
+$$
 
 其中 $\epsilon$ 是为了防止方差为0时产生的计算错误, 而 $\gamma_j, \beta_j$ 则是模型学习出来的参数, 目的是为了尽量还原数据的表达能力.  
 
@@ -148,20 +152,30 @@ $\begin{aligned} \mu_j &= \frac{1}{m} \sum_{i=1}^{m} Z^i_j \\ \sigma^2_j &= \fra
 **(1) 用训练集中的均值和方差做测试集中均值和方差的[无偏估计](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=%E6%97%A0%E5%81%8F%E4%BC%B0%E8%AE%A1&zhida_source=entity)**
 
   
-保留训练模型中, **每一组**batch的**每一个**特征在**每一层**的 $\mu_{batch}, \sigma^2_{batch}$ , 这样我们就可以得到测试数据均值和方差的无偏估计:
+保留训练模型中, **每一组**batch的**每一个**特征在**每一层**的 $\mu _ {batch}, \sigma^2 _ {batch}$ , 这样我们就可以得到测试数据均值和方差的无偏估计:
 
   
-$\begin{aligned} \mu_{test} &= \mathbb{E}(\mu_{batch}) \\ \sigma^2_{test} &= \frac{m}{m-1}\mathbb{E}(\sigma^2_{batch})\\ BN(X_{test}) &= \gamma \frac{X_{test} - \mu_{test}}{\sqrt{\sigma^2_{test} + \epsilon}} + \beta \end{aligned}$  
+$$
+\begin{aligned} \mu _ {test} &= \mathbb{E}(\mu _ {batch}) \cr \sigma^2 _ {test} &= \frac{m}{m-1}\mathbb{E}(\sigma^2 _ {batch})\cr  BN(X _ {test}) &= \gamma \frac{X _ {test} - \mu _ {test}}{\sqrt{\sigma^2 _ {test} + \epsilon}} + \beta \end{aligned}
+$$
+
 其中m表示的是批量大小.  
 这种做法有一个明显的缺点: 需要消耗较大的存储空间, 保存训练过程中所有的均值和方差结果 (每一组, 每一个, 每一层).  
   
 **(2) [Momentum](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=Momentum&zhida_source=entity): 移动平均法(Moving Average)**
 
   
-稍微改变一下训练过程中计算均值和方差的办法, 设 $\mu_{t}$是当前步骤求出的均值, $\bar \mu$ 是之前的训练步骤累积起来求得的均值 (也称running mean), 则:  
-$\bar\mu \gets p\bar\mu + (1-p)\mu^{t}$  
+稍微改变一下训练过程中计算均值和方差的办法, 设 $\mu _ {t}$ 是当前步骤求出的均值, $\bar \mu$ 是之前的训练步骤累积起来求得的均值 (也称running mean), 则:  
+
+$$
+\bar\mu \gets p\bar\mu + (1-p)\mu^{t}
+$$
+
 其中, p是momentum的超参, 表示模型在多大程度上依赖于过去的均值和当前的均值. $\bar\mu$ 则是新一轮的ruuning mean, 也就是当前步骤里最终使用的mean. 同理, 对于方差, 我们也有:  
-$\bar{\sigma^2} \gets p\bar{\sigma^2} + (1-p){\sigma^2}^{t}$
+
+$$
+\bar{\sigma^2} \gets p\bar{\sigma^2} + (1-p){\sigma^2}^{t}
+$$
 
 采用这种方法的好处是:
 
@@ -215,8 +229,8 @@ $\bar{\sigma^2} \gets p\bar{\sigma^2} + (1-p){\sigma^2}^{t}$
   
 BN提出后, 被广泛作用在CNN任务上来处理图像, 并取得了很好的效果. 针对文本任务, [Ba et al. 2016](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1607.06450.pdf) 提出在RNN上使用Layer Normalization (以下简称LN) 的方法, 用于解决BN无法很好地处理文本数据长度不一的问题. 例如采用RNN模型+BN, 我们需要对不同数据的同一个位置的token向量计算 $\mu, \sigma^2$ , 在句子长短不一的情况下, 容易出现:
 
-- 测试集中出现比训练集更长的数据, 由于BN在训练中累积 $\mu_{batch}, \sigma^2_{batch}$ , 在测试中使用累计的经验统计量的原因, 导致测试集中多出来的数据没有相应的统计量以供使用. (**在实际应用中, 通常会对语言类的数据设置一个max\_len, 多裁少pad, 这时没有上面所说的这个问题. 但这里我们讨论的是理论上的情况, 即理论上, 诸如Transformer这样的模型, 是支持任意长度的输入数据的**)
-- 长短不一的情况下, 文本中的某些位置没有足够的batch\_size的数据, 使得计算出来的 $\mu, \sigma^2$ 产生偏差. 例如[Shen et al. (2020)](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2003.07845.pdf)就指出, 在数据集Cifar-10 (模型RestNet20)和IWLST14 (模型Transformer) 的训练过程中, 计算当前[epoch](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=epoch&zhida_source=entity)所有batch的统计量 $\mu_{B}, \sigma^2_{B}$ 和当前累计 (running) 统计量 $\mu, \sigma^2$ 的平均Euclidean distance, 可以发现文本数据较图像数据的分布差异更大:
+- 测试集中出现比训练集更长的数据, 由于BN在训练中累积 $\mu _ {batch}, \sigma^2 _ {batch}$ , 在测试中使用累计的经验统计量的原因, 导致测试集中多出来的数据没有相应的统计量以供使用. (**在实际应用中, 通常会对语言类的数据设置一个max\_len, 多裁少pad, 这时没有上面所说的这个问题. 但这里我们讨论的是理论上的情况, 即理论上, 诸如Transformer这样的模型, 是支持任意长度的输入数据的**)
+- 长短不一的情况下, 文本中的某些位置没有足够的batch\_size的数据, 使得计算出来的 $\mu, \sigma^2$ 产生偏差. 例如[Shen et al. (2020)](https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2003.07845.pdf)就指出, 在数据集Cifar-10 (模型RestNet20)和IWLST14 (模型Transformer) 的训练过程中, 计算当前[epoch](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=epoch&zhida_source=entity)所有batch的统计量 $\mu _ {B}, \sigma^2 _ {B}$ 和当前累计 (running) 统计量 $\mu, \sigma^2$ 的平均Euclidean distance, 可以发现文本数据较图像数据的分布差异更大:
 
 ![图片](images/0d3f3f3f0fd6.jpg)
 
@@ -265,16 +279,19 @@ LN使得各条数据间在进行标准化的时候相互独立, 因此LN在训�
 
 - 在learning rate schedular上, Pre-LN不需要采用warm-up策略, 而Post-LN必须要使用warm-up策略才可以在数据集上取得较好的Loss和BLEU结果.
 - 在收敛速度上, 由于Pre-LN不采用warm-up, 其一开始的learning rate较Post-LN更高, 因此它的收敛速度更快.
-- 在超参调整上, warm-up策略带来了两个需要调整的参数: $lr_{max}$ (最大学习率) 和 $T_{warmup}$ (warmup过程的总步数). 这两个参数的调整将会影响到模型最终的效果. 而由于transformer模型的训练代价是昂贵的, 因此多引入超参, 也给模型训练带来了一定难度.
+- 在超参调整上, warm-up策略带来了两个需要调整的参数: $lr _ {max}$ (最大学习率) 和 $T _ {warmup}$ (warmup过程的总步数). 这两个参数的调整将会影响到模型最终的效果. 而由于transformer模型的训练代价是昂贵的, 因此多引入超参, 也给模型训练带来了一定难度.
 
-> **Quick Tips:** warm-up learning rate, 即指在训练初期的一定步数内, 缓慢将学习率从0升至 $lr_{max}$ , 超过此步数范围则采用decay learning rate的策略. 在大batch数据集的训练中, warm-up learning rate具有较好的表现.
+> **Quick Tips:** warm-up learning rate, 即指在训练初期的一定步数内, 缓慢将学习率从0升至 $lr _ {max}$ , 超过此步数范围则采用decay learning rate的策略. 在大batch数据集的训练中, warm-up learning rate具有较好的表现.
 
 ![图片](images/035f514e01ed.jpg)
 
   
   
-$lr(t) = \frac{t}{T_{warmup}} lr_{max},t\le T_{warmup}$  
-其中, t表示当前训练步数, $T_{warmup}$ 表示warm-up过程总步数, $lr_{max}$ 表示learning rate最高点.  
+$$
+lr(t) = \frac{t}{T _ {warmup}} lr _ {max},t\le T _ {warmup}
+$$
+
+其中, t表示当前训练步数, $T _ {warmup}$ 表示warm-up过程总步数, $lr _ {max}$ 表示learning rate最高点.  
   
 总结看来, Pre-LN带来的好处, 基本都是因为不需要做warm-up引起的. 而引起这一差异的根本原因是:
 
@@ -282,7 +299,7 @@ $lr(t) = \frac{t}{T_{warmup}} lr_{max},t\le T_{warmup}$
 - Pre-LN在输出层的gradient norm较小, 且其不随层数递增或递减而变动, 保持稳定.
 - 无论使用何种Optimzer, 不采用warm-up的Post-LN的效果都不如采用warm-up的情况, 也不如Pre-LN.
 
-以三点原因在论文中有详细的理论和实验证明, 为了节省篇幅, 这里仅贴上实验结果. 实验场景为机器翻译, 分别在IWSLT(German to English)和[WMT](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=WMT&zhida_source=entity)(English to German)这两个数据集上进行. w/o warm-up表示without warm-up, w/warm-up表示with warm-up, $lr_{max}$ 在Post-LN中表示warm-up步骤的最高learning rate, 在Pre-LN中表示初始化的learning rate. 评价指标分别为Loss和BLEU. 这个实验结果证明了上述所说的Pre-LN的优势. 更细节的实验和内容可以参见论文.
+以三点原因在论文中有详细的理论和实验证明, 为了节省篇幅, 这里仅贴上实验结果. 实验场景为机器翻译, 分别在IWSLT(German to English)和[WMT](https://zhida.zhihu.com/search?content_id=189656123&content_type=Article&match_order=1&q=WMT&zhida_source=entity)(English to German)这两个数据集上进行. w/o warm-up表示without warm-up, w/warm-up表示with warm-up, $lr _ {max}$ 在Post-LN中表示warm-up步骤的最高learning rate, 在Pre-LN中表示初始化的learning rate. 评价指标分别为Loss和BLEU. 这个实验结果证明了上述所说的Pre-LN的优势. 更细节的实验和内容可以参见论文.
 
 ![图片](images/9570c2008e5d.jpg)
 

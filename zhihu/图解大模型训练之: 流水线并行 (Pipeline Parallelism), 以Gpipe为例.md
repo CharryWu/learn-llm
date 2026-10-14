@@ -103,12 +103,12 @@ date: 2026-10-14
 ![图片](images/2af8fe0bff59.jpg)
 
   
-如图, 阴影部分所表示的时间段里, 总有GPU在空转. 在Gpipe中, 将阴影部分定义为bubble. 我们来计算一下bubble. 假设有 $K$ 块GPU, 而单块GPU上做一次forward和backward的时间为: $t_{fb} = (t_{f} + t_{b})$ . 则:  
+如图, 阴影部分所表示的时间段里, 总有GPU在空转. 在Gpipe中, 将阴影部分定义为bubble. 我们来计算一下bubble. 假设有 $K$ 块GPU, 而单块GPU上做一次forward和backward的时间为: $t _ {fb} = (t _ {f} + t _ {b})$ . 则:  
 
-- 图中灰色长方形的整体面积为: $K*Kt_{fb}$ (宽= $K$ , 长= $Kt_{fb}$ )
-- 图中实际在做forward和backward的面积为: $Kt_{fb}$
-- 图中阴影部分的面积为: $K*Kt_{fb} - Kt_{fb}=(K-1)Kt_{fb}$
-- 图像阴影部分的占比为: $(K-1)Kt_{fb}/KKt_{fb} =(K-1)/K$
+- 图中灰色长方形的整体面积为: $K*Kt _ {fb}$ (宽= $K$ , 长= $Kt _ {fb}$ )
+- 图中实际在做forward和backward的面积为: $Kt _ {fb}$
+- 图中阴影部分的面积为: $K*Kt _ {fb} - Kt _ {fb}=(K-1)Kt _ {fb}$
+- 图像阴影部分的占比为: $(K-1)Kt _ {fb}/KKt _ {fb} =(K-1)/K$
 
 则我们定义出bubble部分的时间复杂度为: $O(\frac{K-1}{K})$ , **当K越大, 即GPU的数量越多时, 空置的比例接近1, 即GPU的资源都被浪费掉了**. 因此这个问题肯定需要解决.  
   
@@ -118,7 +118,7 @@ date: 2026-10-14
 ![图片](images/00df6e72799b.jpg)
 
   
-在做backward计算梯度的过程中, 我们需要用到每一层的中间结果z. 假设我们的模型有L层, 每一层的宽度为d, 则对于每块GPU, 不考虑其参数本身的存储, 额外的空间复杂度为 $O(N*\frac{L}{K}*d)$ . 从这个复杂度可以看出, 随着模型的增大, N, L, d三者的增加可能会平滑掉K增加带来的GPU内存收益. 因此, 这也是需要优化的地方.  
+在做backward计算梯度的过程中, 我们需要用到每一层的中间结果z. 假设我们的模型有L层, 每一层的宽度为d, 则对于每块GPU, 不考虑其参数本身的存储, 额外的空间复杂度为 $O(N * \frac{L}{K} * d)$ . 从这个复杂度可以看出, 随着模型的增大, N, L, d三者的增加可能会平滑掉K增加带来的GPU内存收益. 因此, 这也是需要优化的地方.  
 
 ##   
 三, 流水线并行
@@ -137,7 +137,7 @@ date: 2026-10-14
 ![图片](images/e57bc8318fd7.jpg)
 
   
-其中, 第一个下标表示GPU编号, 第二个下标表示[micro-batch编号](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=micro-batch%E7%BC%96%E5%8F%B7&zhida_source=entity). 假设我们将mini-batch划分为M个, 则流水线并行下, bubble的时间复杂度为: $O(\frac{K-1}{K+M-1})$ (推导过程略, 可参照第二部分的bubble推导流程). Gpipe通过实验证明, 当 $M>=4K$ 时, bubble产生的空转时间占比对最终训练时长影响是微小的, 可以忽略不计.  
+其中, 第一个下标表示GPU编号, 第二个下标表示[micro-batch编号](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=micro-batch%E7%BC%96%E5%8F%B7&zhida_source=entity). 假设我们将mini-batch划分为M个, 则流水线并行下, bubble的时间复杂度为: $O(\frac{K-1}{K+M-1})$ (推导过程略, 可参照第二部分的bubble推导流程). Gpipe通过实验证明, 当 $M\gt =4K$ 时, bubble产生的空转时间占比对最终训练时长影响是微小的, 可以忽略不计.  
   
 将batch切好, 并逐一送入GPU的过程, 就像一个流水生产线一样 (类似于CPU里的流水线), 因此也被称为Pipeline Parallelism.
 
@@ -159,9 +159,9 @@ date: 2026-10-14
 **每块GPU峰值时刻存储大小 = 每块GPU上的输入数据大小 + 每块GPU在forward过程中的中间结果大小**  
 
 每块GPU上固定需要保存它的起始输入, 我们记起始输入为 $N$ (即mini-batch的大小).  
-每个micro-batch是流水线形式进来的, 算完一个micro-batch才算下一个. 在计算一个micro-batch的过程中, 我们会产生[中间变量](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=%E4%B8%AD%E9%97%B4%E5%8F%98%E9%87%8F&zhida_source=entity), 它的大小为 $\frac{N}{M}*\frac{L}{K}* d$ (其中M为micro-batch个数).  
-**因此, 每块GPU峰值时刻的空间复杂度为** $O(N + \frac{N}{M}*\frac{L}{K}* d)$  
-将其与[朴素模型](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=%E6%9C%B4%E7%B4%A0%E6%A8%A1%E5%9E%8B&zhida_source=entity)并行中的[GPU空间复杂度](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=GPU%E7%A9%BA%E9%97%B4%E5%A4%8D%E6%9D%82%E5%BA%A6&zhida_source=entity) $O(N*\frac{L}{K}*d)$ 比较, 可以发现, 由于采用了micro-batch的方法, 当L变大时, 流水线并行相比于朴素模型并行, 对GPU内存的压力显著减小.
+每个micro-batch是流水线形式进来的, 算完一个micro-batch才算下一个. 在计算一个micro-batch的过程中, 我们会产生[中间变量](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=%E4%B8%AD%E9%97%B4%E5%8F%98%E9%87%8F&zhida_source=entity), 它的大小为 $\frac{N}{M} * \frac{L}{K} * d$ (其中M为micro-batch个数).  
+**因此, 每块GPU峰值时刻的空间复杂度为** $O(N + \frac{N}{M} * \frac{L}{K} * d)$  
+将其与[朴素模型](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=%E6%9C%B4%E7%B4%A0%E6%A8%A1%E5%9E%8B&zhida_source=entity)并行中的[GPU空间复杂度](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=GPU%E7%A9%BA%E9%97%B4%E5%A4%8D%E6%9D%82%E5%BA%A6&zhida_source=entity) $O(N * \frac{L}{K} * d)$ 比较, 可以发现, 由于采用了micro-batch的方法, 当L变大时, 流水线并行相比于朴素模型并行, 对GPU内存的压力显著减小.
 
   
 如果你使用Pytorch提供的[pipeline](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=1&q=pipeline&zhida_source=entity)接口, 其中有一个参数叫[checkpoint](https://zhida.zhihu.com/search?content_id=224397503&content_type=Article&match_order=4&q=checkpoint&zhida_source=entity), 就是用来做这一项的.  

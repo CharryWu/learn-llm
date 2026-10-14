@@ -135,29 +135,31 @@ date: 2026-10-14
 奖励模型也不是chatGPT的首创, 它借鉴于Stiennon et.al (2020) 的研究结果. 在这一阶段, 标注人员需要对同一prompt的不同回答进行排序, 一共有33k的标注数据被用于训练.  
   
 在标注阶段, 标注人员被要求对每一个prompt下的不同回答进行偏号排序. 如图, 某个prompt下有ABC三个回答, 标注人员认为A>B>C.  
-在训练阶段, 假设一个prompt下有K个回答, 则两两回答一组, 组成一条训练数据, 例如 (prompt, A, B), 则一共有 $C_{K}^{2}$ 条训练数据. 这群训练数据将组成一个batch, 通过构造并最小化Pairwise Ranking Loss的方法, 来训练奖励模型, 整体过程如下:
+在训练阶段, 假设一个prompt下有K个回答, 则两两回答一组, 组成一条训练数据, 例如 (prompt, A, B), 则一共有 $C _ {K}^{2}$ 条训练数据. 这群训练数据将组成一个batch, 通过构造并最小化Pairwise Ranking Loss的方法, 来训练奖励模型, 整体过程如下:
 
 ![图片](images/2aa4c5f83143.jpg)
 
   
 我们从Pairwise Ranking Loss入手, 来更好理解上面过程:
 
-$loss(\theta) = -\frac{1}{C_{K}^{2}} E_{(x, y_w,y_l)\sim D}[log(\sigma (r_\theta(x, y_w)-r_\theta (x, y_l)))]$  
+$$
+loss(\theta) = -\frac{1}{C _ {K}^{2}} E _ {(x, y_w,y_l)\sim D}[log(\sigma (r _ \theta(x, y_w)-r _ \theta (x, y_l)))]
+$$
   
 其中,
 
 - $x$ 表示某个prompt
 - $y_w$ 和 $y_l$ 分别表示该prompt下的任意一对回答, 并且假设标注中 $y_w$ 的排序是高于 $y_l$ 的
 - $D$ 表示prompt下人类标注排序的所有两两回答对
-- $r_\theta$ 表示奖励模型
+- $r _ \theta$ 表示奖励模型
 - $\sigma$ 表示[sigmoid函数](https://zhida.zhihu.com/search?content_id=222690774&content_type=Article&match_order=1&q=sigmoid%E5%87%BD%E6%95%B0&zhida_source=entity)
 
-我们期望当回答y的排序相对较高时, $r_\theta(x, y)$ 的得分也能越高. 为了不让K的个数影响训练模型, 我们在前面乘上 $\frac{1}{C_{K}^{2}}$ , 将loss平均到每一个答案对上. 这里, 需要注意以下几个设计中的trick:  
+我们期望当回答y的排序相对较高时, $r _ \theta(x, y)$ 的得分也能越高. 为了不让K的个数影响训练模型, 我们在前面乘上 $\frac{1}{C _ {K}^{2}}$ , 将loss平均到每一个答案对上. 这里, 需要注意以下几个设计中的trick:  
   
 **(1) 为什么要将** $(x, y_w,y_l)\sim D$ **当成一个batch同时送入模型; 而不是将单条** $(x, y_w,y_l)$ **数据分别送入模型呢?**
 
 - 为了避免过拟合. 对于某一对 $(x, y_w,y_l)$ , 用batch方式时, 它只参与一次梯度计算; 用单条方式时, 它需要参与K-1次梯度计算.
-- 为了提升计算效率. 在模型forward的过程中, 最耗时的步骤是计算 $R_\theta(x, y)$ . 用batch方式时, 该计算只需执行K次 (因为模型参数没有更新, 相同的(x, y)可以重复使用); 采用单条方式时, 需要计算 $K(K-1)$ 次 (因为一条计算更新一次模型, 模型参数更新, 相同的(x,y)需要重新计算). 因此, K越大时, 采用batch的方式越划算, 因为它在保证相对排序信息丰富的同时, 又节省了计算效率.
+- 为了提升计算效率. 在模型forward的过程中, 最耗时的步骤是计算 $R _ \theta(x, y)$ . 用batch方式时, 该计算只需执行K次 (因为模型参数没有更新, 相同的(x, y)可以重复使用); 采用单条方式时, 需要计算 $K(K-1)$ 次 (因为一条计算更新一次模型, 模型参数更新, 相同的(x,y)需要重新计算). 因此, K越大时, 采用batch的方式越划算, 因为它在保证相对排序信息丰富的同时, 又节省了计算效率.
 
 **(2) 相比于Stiennon et.al (2020), 该版RM有什么改进?**
 
@@ -172,23 +174,25 @@ $loss(\theta) = -\frac{1}{C_{K}^{2}} E_{(x, y_w,y_l)\sim D}[log(\sigma (r_\theta
   
 不了解强化学习也没关系, 我们直接从损失函数上来说明这一步到底是怎么做的:
 
-$\begin{aligned} \operatorname{objective}(\phi)= & E_{(x, y) \sim D_{\pi_{\phi}^{\mathrm{RL}}}}\left[r_{\theta}(x, y)-\beta \log \left(\pi_{\phi}^{\mathrm{RL}}(y \mid x) / \pi^{\mathrm{SFT}}(y \mid x)\right)\right]+ \\ & \gamma E_{x \sim D_{\text {prertain }}}\left[\log \left(\pi_{\phi}^{\mathrm{RL}}(x)\right)\right] \end{aligned}$
+$$
+\begin{aligned} \operatorname{objective}(\phi)= & E _ {(x, y) \sim D _ {\pi _ {\phi}^{\mathrm{RL}}}}\left[r _ {\theta}(x, y)-\beta \log \left(\pi _ {\phi}^{\mathrm{RL}}(y \mid x) / \pi^{\mathrm{SFT}}(y \mid x)\right)\right]+ \cr & \gamma E _ {x \sim D _ {\text {prertain }}}\left[\log \left(\pi _ {\phi}^{\mathrm{RL}}(x)\right)\right] \end{aligned}
+$$
 
   
 其中:
 
-- $\pi_{\phi}^{\mathrm{RL}}$ 表示我们此刻要学的强化学习模型, 又称为policy
-- $\pi^{\mathrm{SFT}}$ 表示在第一步骤中, 经过supervised fine-tuning的gpt模型, 初始时, $\pi_{\phi}^{\mathrm{RL}}$ = $\pi^{\mathrm{SFT}}$
-- $r_\theta$ 表示第二步骤中的奖励模型
+- $\pi _ {\phi}^{\mathrm{RL}}$ 表示我们此刻要学的强化学习模型, 又称为policy
+- $\pi^{\mathrm{SFT}}$ 表示在第一步骤中, 经过supervised fine-tuning的gpt模型, 初始时, $\pi _ {\phi}^{\mathrm{RL}}$ = $\pi^{\mathrm{SFT}}$
+- $r _ \theta$ 表示第二步骤中的奖励模型
 
   
 我们要最大化该损失函数, 现在拆开来解读损失函数的每一项
 
-- $E_{(x, y) \sim D_{\pi_{\phi}^{\mathrm{RL}}}}$ 中, x表示某个prompt, y表示把x送入当前状态的强化学习模型中所产生的y.
-- $r_\theta(x, y)$ , 我们将当前强化模型下, x和其所产生的y, 送入奖励模型进行打分, 我们当然是希望这个分数越高越好.
-- $\log (\pi_{\phi}^{\mathrm{RL}}(y \mid x) / \pi^{\mathrm{SFT}}(y \mid x))$ , KL散度, 取值范围>=0, 用于比较两个模型的输出分布是否相似, KL值越大, 分布越不相似, 分布相同时KL=0. 在本阶段, 我们希望强化学习后得到的GPT, 在能够理解人类意图的基础上, 又不要和最原始的GPT的输出相差太远 (防止大模型训歪了). 参数 $\beta$ 则表示对这种偏差的容忍程度. 偏离越远, 就要从奖励模型的基础上得到越多的惩罚. 截止到这一步, 称为**PPO**.
-- $E_{x \sim D_{\text {prertain }}}$ 中, $D_{\text {prertain }}$ 表示在SFT之前, 最初始的GPT3/GPT3.5模型. x表示来自初始模型产出的数据.
-- $\log \left(\pi_{\phi}^{\mathrm{RL}}(x)\right)$ , 表示将来自初始GPT中的数据送入当前强化模型下, 同样, 我们希望当前强化模型输出分布不要偏离太多. $\gamma$ 则是对这种偏离的惩罚程度. 添加上这一项以后的优化策略, 称为**PPO-ptx**.
+- $E _ {(x, y) \sim D _ {\pi _ {\phi}^{\mathrm{RL}}}}$ 中, x表示某个prompt, y表示把x送入当前状态的强化学习模型中所产生的y.
+- $r _ \theta(x, y)$ , 我们将当前强化模型下, x和其所产生的y, 送入奖励模型进行打分, 我们当然是希望这个分数越高越好.
+- $\log (\pi _ {\phi}^{\mathrm{RL}}(y \mid x) / \pi^{\mathrm{SFT}}(y \mid x))$ , KL散度, 取值范围>=0, 用于比较两个模型的输出分布是否相似, KL值越大, 分布越不相似, 分布相同时KL=0. 在本阶段, 我们希望强化学习后得到的GPT, 在能够理解人类意图的基础上, 又不要和最原始的GPT的输出相差太远 (防止大模型训歪了). 参数 $\beta$ 则表示对这种偏差的容忍程度. 偏离越远, 就要从奖励模型的基础上得到越多的惩罚. 截止到这一步, 称为**PPO**.
+- $E _ {x \sim D _ {\text {prertain }}}$ 中, $D _ {\text {prertain }}$ 表示在SFT之前, 最初始的GPT3/GPT3.5模型. x表示来自初始模型产出的数据.
+- $\log \left(\pi _ {\phi}^{\mathrm{RL}}(x)\right)$ , 表示将来自初始GPT中的数据送入当前强化模型下, 同样, 我们希望当前强化模型输出分布不要偏离太多. $\gamma$ 则是对这种偏离的惩罚程度. 添加上这一项以后的优化策略, 称为**PPO-ptx**.
 
 ##   
   

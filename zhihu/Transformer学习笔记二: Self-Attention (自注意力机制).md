@@ -110,7 +110,10 @@ Self-attention的意思是, 我们给Attention的输入都来自同一个序列,
 假设batch\_size=1, 输入序列X的形状为(seq\_len = 4, d\_model = 6), 则对于这串序列, 我们产生三个[参数矩阵](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E5%8F%82%E6%95%B0%E7%9F%A9%E9%98%B5&zhida_source=entity): $W^{Q}, W^{K}, W^{V}$ . 通过上述的[矩阵乘法](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95&zhida_source=entity), 我们可以得到最终的结果Q, K, V.  
   
 一般来说, $W^{Q}$ 和 $W^{K}$ 都同样使用k\_dim, $W^{V}$ 使用v\_dim. k\_dim和v\_dim不一定要相等, 但在transformer的原始论文中, 采用的策略是, 设num\_heads为self-attention的头数, 则:  
-$k\_dim = v\_dim = d\_model//num\_heads$  
+
+$$
+k _ {\text{dim}} = v _ {\text{dim}} = d _ {\text{model}}//n _ {\text{heads}}
+$$
 
 上图所绘是num\_heads = 1的情况. 关于num\_heads的概念, 在本文的后面会详细解释.  
 
@@ -119,7 +122,10 @@ $k\_dim = v\_dim = d\_model//num\_heads$
 
   
 总结一下, 到目前为止, 对于某条输入序列X, 我们有:  
-$\left\{\begin{matrix} Q = XW^Q\\ K = XW^K\\ V = XW^V \end{matrix}\right.$  
+
+$$
+\left\lbrace \begin{matrix} Q = XW^Q\cr  K = XW^K\cr  V = XW^V \end{matrix}\right.
+$$
 
 现在, 我们做两件事:
 
@@ -129,7 +135,9 @@ $\left\{\begin{matrix} Q = XW^Q\\ K = XW^K\\ V = XW^V \end{matrix}\right.$
 记最终的输出结果为 $Attention(Q,K,V)$ , 则有:
 
   
-$Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k} } )V$  
+$$
+Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k} } )V
+$$
 
 这个 $d_k$ 就是k\_dim, 而 $softmax(\frac{QK^T}{\sqrt{d_k} } )$ 就是Attention Score矩阵, 我们来详细看下这个矩阵的计算过程.  
 
@@ -147,30 +155,38 @@ $Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k} } )V$
 
 图6: scaled-dot-product
 
-**(勘误: 紫色方框中的下标应该是 $\alpha_{11}, \alpha_{12},\alpha_{13},\alpha_{14},$ )**  
+**(勘误: 紫色方框中的下标应该是 $\alpha _ {11}, \alpha _ {12},\alpha _ {13},\alpha _ {14},$ )**  
   
-**<u>之所以进行[scaling](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=scaling&zhida_source=entity), 是为了使得在softmax的过程中, [梯度下降](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D&zhida_source=entity)得更加稳定, 避免因为梯度过小而造成模型参数更新的停滞</u>**. 下面我们通过数学证明, 来解释这个结论. 为了表达方便 (也为了和论文的标识保持一致), 我们把k\_dim写成 $d_{k}$ , 同理v\_dim写成 $d_{v}$ , S表示softmax函数, 假设在做softmax之前, 紫色矩阵里的每一个值为 $\alpha_{ij}^{*}$ , 则有:
+**<u>之所以进行[scaling](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=scaling&zhida_source=entity), 是为了使得在softmax的过程中, [梯度下降](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D&zhida_source=entity)得更加稳定, 避免因为梯度过小而造成模型参数更新的停滞</u>**. 下面我们通过数学证明, 来解释这个结论. 为了表达方便 (也为了和论文的标识保持一致), 我们把k\_dim写成 $d _ {k}$ , 同理v\_dim写成 $d _ {v}$ , S表示softmax函数, 假设在做softmax之前, 紫色矩阵里的每一个值为 $\alpha _ {ij}^{ * }$ , 则有:
 
-$\alpha_{ij}=S(\alpha_{ij}^{*}) = \frac{e^{\alpha_{ij}^{*}}}{ {\textstyle \sum_{j=1}^{d_k}e^{\alpha_{ij}^{*}}} }$
+$$
+\alpha _ {ij}=S(\alpha _ {ij}^{ * }) = \frac{e^{\alpha _ {ij}^{ * }}}{ {\textstyle \sum _ {j=1}^{d_k}e^{\alpha _ {ij}^{ * }}} }
+$$
 
   
 聚焦到紫色矩阵的某一行, 对于其中某个 ${j}'$ , 我们有:
 
   
   
-$\begin{aligned} \frac{\partial S(\alpha_{i{j}'}^{*})}{\partial \alpha_{i{j}'}^{*}} &= S(\alpha_{i{j}'}^{*})(1-S(\alpha_{i{j}'}^{*}))\\ \frac{\partial S(\alpha_{i{j}'}^{*})}{\partial \alpha_{ij}^{*}} &= -S(\alpha_{i{j}'}^{*})S(\alpha_{ij}^{*}), \qquad j\ne {j}' \end{aligned}$  
+$$
+\begin{aligned} \frac{\partial S(\alpha _ {i{j}'}^{ * })}{\partial \alpha _ {i{j}'}^{ * }} &= S(\alpha _ {i{j}'}^{ * })(1-S(\alpha _ {i{j}'}^{ * }))\cr \frac{\partial S(\alpha _ {i{j}'}^{ * })}{\partial \alpha _ {ij}^{ * }} &= -S(\alpha _ {i{j}'}^{ * })S(\alpha _ {ij}^{ * }), \qquad j\ne {j}' \end{aligned}
+$$
 
 从上面可以看出:
 
-- 当 $\alpha_{i{j}'}^{*}$ 相对于同一行其他的 $\alpha_{ij}^{*}$ 更大的时候, $S(\alpha_{i{j}'}^{*})$ 趋近于1, $S(\alpha_{ij}^{*})$ 趋近于0, 此时以上的两个结果都趋近于0.
-- 当 $\alpha_{i{j}'}^{*}$ 相对于同一行其他的 $\alpha_{ij}^{*}$ 更小的时候, $S(\alpha_{i{j}'}^{*})$ 趋近于0, $S(\alpha_{ij}^{*})$ 趋近于1, 此时以上的两个结果都趋近于0.
+- 当 $\alpha _ {i{j}'}^{ * }$ 相对于同一行其他的 $\alpha _ {ij}^{ * }$ 更大的时候, $S(\alpha _ {i{j}'}^{ * })$ 趋近于1, $S(\alpha _ {ij}^{ * })$ 趋近于0, 此时以上的两个结果都趋近于0.
+- 当 $\alpha _ {i{j}'}^{ * }$ 相对于同一行其他的 $\alpha _ {ij}^{ * }$ 更小的时候, $S(\alpha _ {i{j}'}^{ * })$ 趋近于0, $S(\alpha _ {ij}^{ * })$ 趋近于1, 此时以上的两个结果都趋近于0.
 
   
-**<u>总结起来, 即当</u>** **$\alpha_{i{j}'}^{*}$** **<u>相对于其他结果过大或者过小时, 都会造成softmax函数的偏导趋近于0 (梯度过低). </u>** 在这种情况下, 整个模型在backprop的过程中, 经过softmax之后, 就无法继续传播到softmax之前的函数上, 造成模型参数无法更新, 影响了模型的训练效率.  
+**<u>总结起来, 即当</u>** **$\alpha _ {i{j}'}^{ * }$** **<u>相对于其他结果过大或者过小时, 都会造成softmax函数的偏导趋近于0 (梯度过低). </u>** 在这种情况下, 整个模型在backprop的过程中, 经过softmax之后, 就无法继续传播到softmax之前的函数上, 造成模型参数无法更新, 影响了模型的训练效率.  
   
-那么 $\alpha_{i{j}}^{*}$ 是怎么计算来的呢? 通过前面的讲解可以知道:  
-$\alpha_{ij}^{*}=qk^{T} = \sum_{j=1}^{d_{k}}q_{ij}k_{ji}$  
-假设向量q和k中的每一个元素都是相互独立, 均值为0, 方差为1的随机变量, 那么易知 $\alpha_{i{j}}^{*}$ 的均值也为0, 方差为 $d_{k}$ . $d_k$ 较大, 意味着不同 $\alpha_{i{j}}^{*}$ 间值的差距也很大, 这就导致了上面所说的梯度消失的问题.  
+那么 $\alpha _ {i{j}}^{ * }$ 是怎么计算来的呢? 通过前面的讲解可以知道:  
+
+$$
+\alpha _ {ij}^{ * }=qk^{T} = \sum _ {j=1}^{d _ {k}}q _ {ij}k _ {ji}
+$$
+
+假设向量q和k中的每一个元素都是相互独立, 均值为0, 方差为1的随机变量, 那么易知 $\alpha _ {i{j}}^{ * }$ 的均值也为0, 方差为 $d _ {k}$ . $d_k$ 较大, 意味着不同 $\alpha _ {i{j}}^{ * }$ 间值的差距也很大, 这就导致了上面所说的梯度消失的问题.  
   
 
 ###   
@@ -199,8 +215,12 @@ Masked的实现机制其实很简单, 如图:
 而在NLP中, 这种模式识别同样重要. 比如第一个head用来识别词语间的指代关系(某个句子里有一个单词it, 这个it具体指什么呢), 第二个head用于识别词语间的时态关系 (看见yesterday就要用过去式) 等等.  
   
 图8展示了[multihead attention](https://zhida.zhihu.com/search?content_id=189330768&content_type=Article&match_order=1&q=multihead+attention&zhida_source=entity)的运作方式. 设头的数量为num\_heads, 那么本质上, 就是训练num\_heads个 $W^Q, W^K, W^V$ 个矩阵, 用于生成num\_heads个 $Q, K, V$ 结果. 每个结果的计算方式和单头的attention的计算方式一致. 最终将生成的b连接起来生成最后的结果. 图9详细展示了8个head的矩阵化的运算过程, 由于拆分成了多头, 则此时有  
-$k\_dim = v\_dim = d\_model // num\_heads$  
-也就是说, $W^Q, W^K, W^V$ 的维度变为 $(d\_model, d\_model // num\_heads)$. 按照这个规则拆分后, 多头的运算量和原来单头的运算量一样. 同时在图9中, 在输出部分出现了一个 $W^O$ 矩阵, 这个矩阵用于将拼接起来的多头输出转换为最终总输出  
+
+$$
+k _ {\text{dim}} = v _ {\text{dim}} = d _ {\text{model}} // n _ {\text{heads}}
+$$
+
+也就是说, $W^Q, W^K, W^V$ 的维度变为 $(d _ {\text{model}}, d _ {\text{model}} // n _ {\text{heads}})$. 按照这个规则拆分后, 多头的运算量和原来单头的运算量一样. 同时在图9中, 在输出部分出现了一个 $W^O$ 矩阵, 这个矩阵用于将拼接起来的多头输出转换为最终总输出  
 
 ![图片](images/df35847fa30a.jpg)
 

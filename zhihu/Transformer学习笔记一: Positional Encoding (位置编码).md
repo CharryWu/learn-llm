@@ -54,7 +54,9 @@ date: 2026-10-14
   
 在transformer的encoder和decoder的输入层中, 使用了Positional Encoding, 使得最终的输入满足:
 
-$input = input\_embedding + positional\_encoding$  
+$$
+\text{input} = \text{input embedding} + \text{positional encoding}
+$$
   
 这里, input\_embedding是通过常规embedding层, 将每一个token的向量维度从vocab\_size映射到d\_model, 由于是相加关系, 自然而然地, 这里的positional\_encoding也是一个d\_model维度的向量. (在原论文里, d\_model = 512)  
   
@@ -121,7 +123,9 @@ $input = input\_embedding + positional\_encoding$
   
 回想一下, 现在我们需要一个有界又连续的函数, 最简单的, [正弦函数](https://zhida.zhihu.com/search?content_id=189127040&content_type=Article&match_order=1&q=%E6%AD%A3%E5%BC%A6%E5%87%BD%E6%95%B0&zhida_source=entity)sin就可以满足这一点. 我们可以考虑把位置向量当中的每一个元素都用一个[sin函数](https://zhida.zhihu.com/search?content_id=189127040&content_type=Article&match_order=1&q=sin%E5%87%BD%E6%95%B0&zhida_source=entity)来表示, 则第t个token的位置向量可以表示为:
 
-$PE_t = [sin(\frac{1}{2^0}t),sin(\frac{1}{2^1}t)...,sin(\frac{1}{2^{i-1}}t), ...,sin(\frac{1}{2^{d_{model}-1}}t)]\\$  
+$$
+PE_t = [sin(\frac{1}{2^0}t),sin(\frac{1}{2^1}t)...,sin(\frac{1}{2^{i-1}}t), ...,sin(\frac{1}{2^{d_{model}-1}}t)]
+$$
   
 结合下图, 来理解一下这样设计的含义. 图中每一行表示一个 $PE_t$ , 每一列表示 $PE_t$ 中的第i个元素. 旋钮用于调整精度, 越往右边的旋钮, 需要调整的精度越大, 因此指针移动的步伐越小. 每一排的旋钮都在上一排的基础上进行调整 (函数中t的作用). 通过频率 $\frac{1}{2^{i-1}}$ 来控制sin函数的波长, 频率不断减小, 则波长不断变大, 此时sin函数对t的变动越不敏感, 以此来达到越向右的旋钮, 指针移动步伐越小的目的. 这也类似于二进制编码, 每一位上都是0和1的交互, 越往低位走 (越往左边走), 交互的频率越慢.  
   
@@ -144,12 +148,15 @@ $PE_t = [sin(\frac{1}{2^0}t),sin(\frac{1}{2^1}t)...,sin(\frac{1}{2^{i-1}}t), ...
   
   
   
-为了避免这种情况, 我们尽量将函数的波长拉长. 一种简单的解决办法是同一把所有的频率都设成一个非常小的值. 因此在transformer的论文中, 采用了 $\frac{1}{10000^{i/(d_{model}-1)}}$ 这个频率 (这里i其实不是表示第i个位置, 但是大致意思差不多, 下面会细说)
+为了避免这种情况, 我们尽量将函数的波长拉长. 一种简单的解决办法是同一把所有的频率都设成一个非常小的值. 因此在transformer的论文中, 采用了 $\frac{1}{10000^{i/(d _ {model}-1)}}$ 这个频率 (这里i其实不是表示第i个位置, 但是大致意思差不多, 下面会细说)
 
 总结一下, 到这里我们把位置向量表示为:
 
-$PE_t = [sin(w_0t),sin(w_1t)...,sin(w_{i-1}t), ...,sin(w_{d_{model}-1}t)]\\$  
-其中, $w_{i} = \frac{1}{10000^{i/(d_{model}-1)}}$
+$$
+PE_t = [sin(w_0t),sin(w_1t)...,sin(w_{i-1}t), ...,sin(w_{d_{model}-1}t)]
+$$
+
+其中, $w _ {i} = \frac{1}{10000^{i/(d _ {model}-1)}}$
 
 ###   
   
@@ -164,26 +171,34 @@ $PE_t = [sin(w_0t),sin(w_1t)...,sin(w_{i-1}t), ...,sin(w_{d_{model}-1}t)]\\$
 那现在我们对位置向量再提出一个要求, **不同的位置向量是可以通过线性转换得到的**. 这样, 我们不仅能表示一个token的绝对位置, 还可以表示一个token的相对位置, 即我们想要:
 
   
-$PE_{t+\bigtriangleup t} = T_{\bigtriangleup t} * PE_{t}$
+$$
+PE _ {t+\bigtriangleup t} = T _ {\bigtriangleup t} * PE _ {t}
+$$
 
   
-这里, T表示一个线性变换矩阵. 观察这个目标式子, 联想到在向量空间中一种常用的线形变换 - - 旋转. 在这里, 我们将t想象为一个角度, 那么 $\bigtriangleup t$就是其旋转的角度, 则上面的式子可以进一步写成:
+这里, T表示一个线性变换矩阵. 观察这个目标式子, 联想到在向量空间中一种常用的线形变换 - - 旋转. 在这里, 我们将t想象为一个角度, 那么 $\bigtriangleup t$ 就是其旋转的角度, 则上面的式子可以进一步写成:
 
   
-$\begin{pmatrix} \sin(t + \bigtriangleup t)\\ \cos((t + \bigtriangleup t) \end{pmatrix}=\begin{pmatrix} \cos\bigtriangleup t&\sin\bigtriangleup t \\ -\sin\bigtriangleup t&\cos\bigtriangleup t \end{pmatrix}\begin{pmatrix} \sin t\\ \cos t \end{pmatrix}$
+$$
+\begin{pmatrix} \sin(t + \bigtriangleup t)\cr \cos((t + \bigtriangleup t) \end{pmatrix}=\begin{pmatrix} \cos\bigtriangleup t&\sin\bigtriangleup t \cr -\sin\bigtriangleup t&\cos\bigtriangleup t \end{pmatrix}\begin{pmatrix} \sin t\cr \cos t \end{pmatrix}
+$$
 
   
 有了这个构想, 我们就可以把原来元素全都是sin函数的 $PE_t$ 做一个替换, 我们让位置两两一组, 分别用sin和cos的函数对来表示它们, 则现在我们有:
 
   
-$PE_t = [sin(w_0t),cos(w_0t), sin(w_1t),cos(w_1t),...,sin(w_{\frac{d_{model}}{2}-1}t), cos(w_{\frac{d_{model}}{2}-1}t)]\\$
+$$
+PE_t = [sin(w_0t),cos(w_0t), sin(w_1t),cos(w_1t),...,sin(w_{\frac{d_{model}}{2}-1}t), cos(w_{\frac{d_{model}}{2}-1}t)]
+$$
 
   
-在这样的表示下, 我们可以很容易用一个线性变换, 把 $PE_t$ 转变为 $PE_{t + \bigtriangleup t}$ :
+在这样的表示下, 我们可以很容易用一个线性变换, 把 $PE_t$ 转变为 $PE _ {t + \bigtriangleup t}$ :
 
   
 
-$PE_{t+\bigtriangleup t} = T_{\bigtriangleup t} * PE_{t} =\begin{pmatrix} \begin{bmatrix} cos(w_0\bigtriangleup t)& sin(w_0\bigtriangleup t)\\ -sin(w_0\bigtriangleup t)& cos(w_0\bigtriangleup t) \end{bmatrix}&...&0 \\ ...& ...& ...\\ 0& ...& \begin{bmatrix} cos(w_{\frac{d_{model}}{2}-1 }\bigtriangleup t)& sin(w_{\frac{d_{model}}{2}-1}\bigtriangleup t)\\ -sin(w_{\frac{d_{model}}{2}-1}\bigtriangleup t)& cos(w_{\frac{d_{model}}{2}-1}\bigtriangleup t) \end{bmatrix} \end{pmatrix}\begin{pmatrix} sin(w_0t)\\ cos(w_0t)\\ ...\\ sin(w_{\frac{d_{model}}{2}-1}t)\\ cos(w_{\frac{d_{model}}{2}-1}t) \end{pmatrix} = \begin{pmatrix} sin(w_0(t+\bigtriangleup t))\\ cos(w_0(t+\bigtriangleup t))\\ ...\\ sin(w_{\frac{d_{model}}{2}-1}(t+\bigtriangleup t))\\ cos(w_{\frac{d_{model}}{2}-1}(t+\bigtriangleup t)) \end{pmatrix}$  
+$$
+PE _ {t+\bigtriangleup t} = T _ {\bigtriangleup t} * PE _ {t} =\begin{pmatrix} \begin{bmatrix} cos(w_0\bigtriangleup t)& sin(w_0\bigtriangleup t)\cr -sin(w_0\bigtriangleup t)& cos(w_0\bigtriangleup t) \end{bmatrix}&...&0 \cr ...& ...& ...\cr 0& ...& \begin{bmatrix} cos(w _ {\frac{d _ {model}}{2}-1 }\bigtriangleup t)& sin(w _ {\frac{d _ {model}}{2}-1}\bigtriangleup t)\cr -sin(w _ {\frac{d _ {model}}{2}-1}\bigtriangleup t)& cos(w _ {\frac{d _ {model}}{2}-1}\bigtriangleup t) \end{bmatrix} \end{pmatrix}\begin{pmatrix} sin(w_0t)\cr  cos(w_0t)\cr ...\cr  sin(w _ {\frac{d _ {model}}{2}-1}t)\cr  cos(w _ {\frac{d _ {model}}{2}-1}t) \end{pmatrix} = \begin{pmatrix} sin(w_0(t+\bigtriangleup t))\cr  cos(w_0(t+\bigtriangleup t))\cr ...\cr  sin(w _ {\frac{d _ {model}}{2}-1}(t+\bigtriangleup t))\cr  cos(w _ {\frac{d _ {model}}{2}-1}(t+\bigtriangleup t)) \end{pmatrix}
+$$
 
   
 
@@ -198,21 +213,29 @@ $PE_{t+\bigtriangleup t} = T_{\bigtriangleup t} * PE_{t} =\begin{pmatrix} \begin
 
 定义:  
 \- t是这个token在序列中的实际位置 (例如第一个token为1, 第二个token为2...)  
-\- $PE_t\in\mathbb{R}^d$ 是这个token的位置向量, $PE_{t}^{(i)}$ 表示这个位置向量里的第i个元素  
-\- $d_{model}$ 是这个token的维度 (在论文中, 是512)  
+\- $PE_t\in\mathbb{R}^d$ 是这个token的位置向量, $PE _ {t}^{(i)}$ 表示这个位置向量里的第i个元素  
+\- $d _ {model}$ 是这个token的维度 (在论文中, 是512)  
 
-则 $PE_{t}^{(i)}$ 可以表示为:
+则 $PE _ {t}^{(i)}$ 可以表示为:
 
   
-$PE_{t}^{(i)} = \left\{\begin{matrix} \sin(w_kt),&if\ i=2k \\ \cos(w_kt),&if\ i = 2k+1 \end{matrix}\right.$
+$$
+PE _ {t}^{(i)} = \left\lbrace \begin{matrix} \sin(w_kt),&if\ i=2k \cr \cos(w_kt),&if\ i = 2k+1 \end{matrix}\right.
+$$
 
   
 这里:  
-$w_k = \frac{1}{10000^{2k/d_{model}}}$  
-$i = 0,1,2,3,...,\frac{d_{model}}{2} -1$
+
+$$
+w_k = \frac{1}{10000^{2k/d _ {model}}}
+$$
+
+$$
+i = 0,1,2,3,...,\frac{d _ {model}}{2} -1
+$$
 
   
-看得有点懵不要紧, 这个意思和2.5中的意思是一模一样的, 把512维的向量两两一组, 每组都是一个sin和一个cos, 这两个函数共享同一个频率 $w_i$ , 一共有256组, 由于我们从0开始编号, 所以最后一组编号是255. sin/cos函数的波长 (由 $w_i$ 决定) 则从 $2\pi$ 增长到 $2\pi * 10000$
+看得有点懵不要紧, 这个意思和2.5中的意思是一模一样的, 把512维的向量两两一组, 每组都是一个sin和一个cos, 这两个函数共享同一个频率 $w_i$ , 一共有256组, 由于我们从0开始编号, 所以最后一组编号是255. sin/cos函数的波长 (由 $w_i$ 决定) 则从 $2\pi$ 增长到 $2\pi*10000$
 
 ###   
 3.2 Transformer位置编码可视化
@@ -237,10 +260,13 @@ $i = 0,1,2,3,...,\frac{d_{model}}{2} -1$
 
   
 证明:  
-$\begin{aligned} PE_{t}^{T}*PE_{t+\bigtriangleup t} &= \sum_{i = 0}^{\frac{d_{model}}{2}-1} [sin(w_it)sin(w_i(t+\bigtriangleup t) + cos(w_it)cos(w_i(t+\bigtriangleup t)]\\ &= \sum_{i = 0}^{\frac{d_{model}}{2}-1}cos(w_i(t-(t+\bigtriangleup t)))\\ & = \sum_{i = 0}^{\frac{d_{model}}{2}-1}cos(w_i\bigtriangleup t) \end{aligned}$  
+
+$$
+\begin{aligned} PE _ {t}^{T} * PE _ {t+\bigtriangleup t} &= \sum _ {i = 0}^{\frac{d _ {model}}{2}-1} [sin(w_it)sin(w_i(t+\bigtriangleup t) + cos(w_it)cos(w_i(t+\bigtriangleup t)]\cr &= \sum _ {i = 0}^{\frac{d _ {model}}{2}-1}cos(w_i(t-(t+\bigtriangleup t)))\cr & = \sum _ {i = 0}^{\frac{d _ {model}}{2}-1}cos(w_i\bigtriangleup t) \end{aligned}
+$$
   
 
-**(2) 性质二: 位置编码的点积是无向的, 即 $PE_{t}^{T}*PE_{t+\bigtriangleup t} = PE_{t}^{T}*PE_{t-\bigtriangleup t}$**
+**(2) 性质二: 位置编码的点积是无向的, 即 $PE _ {t}^{T} * PE _ {t+\bigtriangleup t} = PE _ {t}^{T} * PE _ {t-\bigtriangleup t}$**
 
   
 证明:  
@@ -256,10 +282,12 @@ $\begin{aligned} PE_{t}^{T}*PE_{t+\bigtriangleup t} &= \sum_{i = 0}^{\frac{d_{mo
 当位置编码随着input被喂进attention层时, 采用的映射方其实是:
 
   
-$PE_t^TW_Q^TW_KPE_{t+k}$
+$$
+PE_t^TW_Q^TW_KPE _ {t+k}
+$$
 
   
-这里 $W_Q^T$ 和 $W_K$ 表示self-attention中的query和key参数矩阵, 他们可以被简写成 $W$ 表示attention score的矩阵, 到这里看不懂也没事, 在self-attention的笔记里会说明的). 我们可以随机初始化两组 $W_1, W_2$ , 然后将 $PE_t^TW_1PE_{t+k}$ , $PE_t^TW_2PE_{t+k}$ 和 $PE_t^TPE_{t+k}$ 这三个内积进行比较, 得到的结果如下:  
+这里 $W_Q^T$ 和 $W_K$ 表示self-attention中的query和key参数矩阵, 他们可以被简写成 $W$ 表示attention score的矩阵, 到这里看不懂也没事, 在self-attention的笔记里会说明的). 我们可以随机初始化两组 $W_1, W_2$ , 然后将 $PE_t^TW_1PE _ {t+k}$ , $PE_t^TW_2PE _ {t+k}$ 和 $PE_t^TPE _ {t+k}$ 这三个内积进行比较, 得到的结果如下:  
 
 ![图片](images/e205a2996f0c.jpg)
 

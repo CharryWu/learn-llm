@@ -284,13 +284,17 @@ Bert模型在做分词的时候用的就是WordPiece方法. WordPiece方法和BP
 假设句子 $S = (t_1, t_2,...,t_n)$ , 其中 $t_i$ 表示第i个子词 (初始状态是字符, 经过一定的合并步骤以后变成子词, 所以这里统一用 $t$ 来表示). 假设各个子词之间相互独立, 则有:
 
   
-$logP(S) = \sum_{i=1}^{n} logP(t_i)$
+$$
+logP(S) = \sum _ {i=1}^{n} logP(t_i)
+$$
 
   
 对于某两个相邻位置x和y, 若将对应位置的子词合并, 记合并后的子词为z, 则合并前后语言模型概率的变化为:
 
   
-$logP(t_z) - (logP(t_x) + logP(t_y)) = log(\frac{P(t_z)}{P(t_x)P(t_y)})$
+$$
+logP(t_z) - (logP(t_x) + logP(t_y)) = log(\frac{P(t_z)}{P(t_x)P(t_y)})
+$$
 
   
 则对于这个句子, 我们要做的就是找到使得 $log(\frac{P(t_z)}{P(t_x)P(t_y)})$ 最大的那个相邻 $(t_x, t_y)$ 对, 这个最大对在语言模型上具有较强的关联性, 因此我们选择合并它们.
@@ -324,17 +328,21 @@ Encoder和Decoder的方法和BPE相似, 因此这里略去. 同时也注意到, 
 
 设语料库中有 $|D|$ 条语料. $X^{(s)}$ 表示语料库中的第 $s$ 条语料. $\mathcal S(X^{(s)})$ 表示语料 $X^{(s)}$ 所有划分结果的集合. $\vec x$ 表示其中一种划分结果, 满足 $\vec x \in \mathcal S(X^{(s)})$ . 同时, 我们**假设词表中每一个子词相互独立 (Unigram Language Model的重要前提).** 则我们的**评价标准** $\mathcal L$ 定义为: 预料库中的所有语料的所有分词组合形成的概率相加, 即:
 
-$\mathcal L = \sum_{s=1}^{|D|}log(P(X^{(s)})) = \sum_{s=1}^{|D|}log(\sum_{\vec x\in\mathcal S(X^{(s)})}P(\vec x) )$
+$$
+\mathcal L = \sum _ {s=1}^{|D|}log(P(X^{(s)})) = \sum _ {s=1}^{|D|}log(\sum _ {\vec x\in\mathcal S(X^{(s)})}P(\vec x) )
+$$
 
   
 其中, 假设某个划分结果 $\vec x$ 中含有m个子词, 即 $\vec x = (x_1, x_2, ..., x_m)$ , 那么有:
 
   
-$P(\vec x) = \prod_{i=1}^{m} P(x_i)$
+$$
+P(\vec x) = \prod _ {i=1}^{m} P(x_i)
+$$
 
 基于当前词表, 通过EM算法, 我们可以求得 $P(x_i)$ 的概率, 也就是每个子词在整个语料库上的概 率. 进而就可以求得 $\mathcal L$ .  
 
-- 从当前词表中删除对 $\mathcal L$贡献度小的子词. 具体实现方式是:
+- 从当前词表中删除对 $\mathcal L$ 贡献度小的子词. 具体实现方式是:
 
 对于每个字词, 计算当该子词从词表中移除时, 总的 $\mathcal L$ 降低了多少, 这个降低记为该字词的 $loss$ . 将 $loss$ 从小到大进行排序, **丢弃掉一定比例的** $loss$ **最小的子词**. 可以理解为, 这些子词对整个语料库的影响不大. 同时, **单字符的子词不要丢弃, 这是为了避免OOV的情况**.  
 
@@ -344,10 +352,12 @@ $P(\vec x) = \prod_{i=1}^{m} P(x_i)$
 5.2 ULM的编码步骤 (Encoder)
 
   
-编码步骤里, 将基于最终生成的词表, 找到一个语料最优的划分方式, 设这个最有的划分方式为 $\vec x^*$ , 则我们的目的其实是:
+编码步骤里, 将基于最终生成的词表, 找到一个语料最优的划分方式, 设这个最有的划分方式为 $\vec x^ *$ , 则我们的目的其实是:
 
   
-$\vec x^* = argmax_{\vec x \in \mathcal S(X^{(s)})}P(\vec x)$
+$$
+\vec x^ * = argmax _ {\vec x \in \mathcal S(X^{(s)})}P(\vec x)
+$$
 
   
 根据训练阶段保留下来的 $P(x_i)$ , 我们可以用 **[维特比算法](https://zhida.zhihu.com/search?content_id=190502949&content_type=Article&match_order=1&q=%E7%BB%B4%E7%89%B9%E6%AF%94%E7%AE%97%E6%B3%95&zhida_source=entity)(viterbi)** 来得到最终最优的划分.  

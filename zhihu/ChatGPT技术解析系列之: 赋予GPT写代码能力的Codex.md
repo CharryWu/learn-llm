@@ -97,14 +97,16 @@ Codex中的评估数据示例: 白色部分为prompt, 黄色部分为completion
 基于这一标准, 我们给出一个量化的评估指标pass@k:
 
   
-$pass@k := E_{problems}[1-\frac{C_{n-c}^{k}}{{C_{n}^{k}}}]$  
+$$
+pass@k := E _ {problems}[1-\frac{C _ {n-c}^{k}}{{C _ {n}^{k}}}]
+$$
 
 其中:
 
 - $n$ : 对同一个问题, 让模型产生n个答案. 在论文中, 取n = 200
 - $k$ : 从这n个答案中, 随机抽出k个. 在论文中, 取 k<=n
 - $c$ : 模型产生的n个答案里, 通过单元测的答案有c个.
-- $\frac{C_{n-c}^{k}}{{C_{n}^{k}}}$ : 从模型产生的k个答案里抽取k个, 这k个答案全部错误的概率.
+- $\frac{C _ {n-c}^{k}}{{C _ {n}^{k}}}$ : 从模型产生的k个答案里抽取k个, 这k个答案全部错误的概率.
 - $pass@k$ : **整合起来, 这个指标表示, 从模型的答案中随机抽取k个后, 能从这k个里得到正确答案的概率**.
 
   
@@ -112,10 +114,12 @@ $pass@k := E_{problems}[1-\frac{C_{n-c}^{k}}{{C_{n}^{k}}}]$
 这样做的原因是, **当k越大时, 模型更有可能产出正确的答案. 因此研究时, 也要考虑k对评估指标的影响**. 为了方便, 干脆让模型对同一个问题, 一次性生成n个答案, 我们再从中评估不同k值大小的影响就行.
 
   
-$pass@k$ 在工程计算时, 又会产生新的问题: $\frac{C_{n-c}^{k}}{{C_{n}^{k}}}$ 这一项在展开计算时, 涉及到多次阶层计算, 数字会非常大, 引起精度上的不稳定. 因此在实际写代码时, 我们需要对这项化简, 尽量减少阶层运算次数, 化简过程如下:  
+$pass@k$ 在工程计算时, 又会产生新的问题: $\frac{C _ {n-c}^{k}}{{C _ {n}^{k}}}$ 这一项在展开计算时, 涉及到多次阶层计算, 数字会非常大, 引起精度上的不稳定. 因此在实际写代码时, 我们需要对这项化简, 尽量减少阶层运算次数, 化简过程如下:  
   
   
-$\begin{aligned} 1-\frac{C_{n-c}^{k}}{{C_{n}^{k}}} &= 1-\frac{(n-c)!}{k!(n-c-k)!} *\frac{k!(n-k)!}{n!} \\ & = 1- \frac{(n-c)!}{n!}* \frac{(n-k)!}{(n-c-k)!}\\ & = 1-\prod_{i=n-c+1}^{n}\frac{1}{i}\prod_{i=n-c-k+1}^{n-k}i \\ & = 1-\prod_{i=n-c+1}^{n}\frac{1}{i}\prod_{i=n-c+1}^{n}(i-k) \\ & = 1-\prod_{i=n-c+1}^{n}\frac{i-k}{i}\\ & = 1 - \prod_{i=n-c+1}^{n}(1-\frac{k}{i}) \end{aligned}$  
+$$
+\begin{aligned} 1-\frac{C _ {n-c}^{k}}{{C _ {n}^{k}}} &= 1-\frac{(n-c)!}{k!(n-c-k)!} * \frac{k!(n-k)!}{n!} \cr & = 1- \frac{(n-c)!}{n!} * \frac{(n-k)!}{(n-c-k)!}\cr & = 1-\prod _ {i=n-c+1}^{n}\frac{1}{i}\prod _ {i=n-c-k+1}^{n-k}i \cr & = 1-\prod _ {i=n-c+1}^{n}\frac{1}{i}\prod _ {i=n-c+1}^{n}(i-k) \cr & = 1-\prod _ {i=n-c+1}^{n}\frac{i-k}{i}\cr & = 1 - \prod _ {i=n-c+1}^{n}(1-\frac{k}{i}) \end{aligned}
+$$
   
   
 写成numpy代码就是:  
@@ -168,7 +172,7 @@ pass@k的numpy代码实现
 
 - [Learning rate](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=Learning+rate&zhida_source=entity): 和GPT3一样, 采用warmup的方式, 175 step linear warmup + cosine learning rate. (warmup策略可见链接文章最后一部分[猛猿: Transformer学习笔记三: 为什么Transformer要用LayerNorm/Batch Normalization & Layer Normalization (批量&层标准化)](https://zhuanlan.zhihu.com/p/456863215))
 - tokens: 100B
-- Adam [optimizer](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=optimizer&zhida_source=entity), $\beta_{1}=0.9, \beta_{2}=0.95, \epsilon=10^{-8}, weight decay coefficient = 0.1$
+- Adam [optimizer](https://zhida.zhihu.com/search?content_id=223978962&content_type=Article&match_order=1&q=optimizer&zhida_source=entity), $\beta _ {1}=0.9, \beta _ {2}=0.95, \epsilon=10^{-8}, weight decay coefficient = 0.1$
 
   
 

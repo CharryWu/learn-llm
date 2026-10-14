@@ -116,7 +116,7 @@ Code usually stores a batch as rows and writes `x @ W` (row-vector convention). 
 
 ![Three-layer network: each block is W,b then an activation](zhihu/images/9dac34bd5cbb.jpg)
 
-*Data flow through a 3-layer net: $x \to Z^{[1]} \to A^{[1]} \to \dots \to A^{[3]} \to$ LOSS. The [backprop](#backpropagation--the-heart-of-training) section walks this same picture backwards. Source: [ResNet note](<zhihu/Transformer学习笔记四: ResNet (残差网络).md>).*
+Data flow through a 3-layer net: $x \to Z^{[1]} \to A^{[1]} \to \dots \to A^{[3]} \to$ LOSS. The [backprop](#backpropagation--the-heart-of-training) section walks this same picture backwards. Source: [ResNet note](<zhihu/Transformer学习笔记四: ResNet (残差网络).md>).
 
 #### "Hidden layer" vs "Activation layer" — same thing or not?
 
@@ -192,7 +192,7 @@ Param count: `(4·8+8) + (8·8+8) + (8·2+2) = 40 + 72 + 18 = 130`. Most params 
 The weighted sum is **linear**. Stack 100 linear layers and you still get… a single linear layer, because matrix products collapse:
 
 $$
-W_2 (W_1 x) = (W_2 W_1)\, x = W' x
+W_2 (W_1 x) = (W_2 W_1)\thinspace  x = W' x
 $$
 
 <details>
@@ -206,7 +206,7 @@ $$
 | $(W_2 W_1)$ | the product of the two matrices | shows we may regroup (associativity) | the regrouping *is* the argument: two steps become one |
 | $W'$ | one equivalent matrix | proves the 2-layer net equals a 1-layer net | the final form: a single linear layer |
 
-Insert any nonlinear $g$ between them and the regrouping fails: $W_2\, g(W_1 x) \ne (W_2 W_1) x$. That is the whole job of the activation.
+Insert any nonlinear $g$ between them and the regrouping fails: $W_2\thinspace  g(W_1 x) \ne (W_2 W_1) x$. That is the whole job of the activation.
 
 </details>
 
@@ -245,7 +245,7 @@ Problem: step has zero gradient everywhere → [backprop](#backpropagation--the-
 
 ![Common activation functions and their saturated regions](zhihu/images/70458ac36c28.jpg)
 
-*Sigmoid/tanh go flat at both ends — the **saturated regime**, where the gradient ≈ 0. Source: [LayerNorm note](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).*
+Sigmoid/tanh go flat at both ends — the **saturated regime**, where the gradient ≈ 0. Source: [LayerNorm note](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).
 
 #### Detailed comparison
 
@@ -321,7 +321,7 @@ Sigmoid/tanh aren't gone — they live inside softmax and gating mechanisms. ReL
 Softmax is the "activation" of the **output layer** and of **attention weights**. It turns any vector of scores (logits) into a probability distribution:
 
 $$
-\text{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j} e^{z_j}}
+\text{softmax}(z) _ i = \frac{e^{z_i}}{\sum _ {j} e^{z_j}}
 $$
 
 <details>
@@ -351,11 +351,8 @@ Winner-take-most: `exp` makes everything positive and stretches gaps, dividing b
 
 Three facts you'll meet again later:
 
-1. **Temperature** — divide logits by $T$ before softmax: $p_i = \dfrac{e^{z_i/T}}{\sum_j e^{z_j/T}}$. $T<1$ sharpens, $T>1$ flattens. That's the [sampling knob](#sampling-at-inference-time).
-2. **Saturation** — the gradient of softmax is
-   $$
-   \frac{\partial\, \text{softmax}(z)_i}{\partial z_j} = s_i(\delta_{ij} - s_j)
-   $$
+1. **Temperature** — divide logits by $T$ before softmax: $p_i = \dfrac{e^{z_i/T}}{\sum_j e^{z_j/T}}$. $T\lt 1$ sharpens, $T\gt 1$ flattens. That's the [sampling knob](#sampling-at-inference-time).
+2. **Saturation** — the gradient of softmax is $\dfrac{\partial\thinspace \text{softmax}(z) _ i}{\partial z_j} = s_i(\delta _ {ij} - s_j)$.
    If one logit dominates ($s_i \to 1$, others $\to 0$), **every** entry goes to 0 → no gradient. Huge logits are bad. That's exactly why attention [divides by √d_k](#why-divide-by-d_k).
 3. **Numerical trick** — implementations compute `softmax(z - max(z))`; the result is identical but `exp` never overflows.
 
@@ -364,11 +361,11 @@ Three facts you'll meet again later:
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $T$ | temperature, $T > 0$ | controls how peaked the distribution is | divides every logit *before* $\exp$, scaling all gaps by $1/T$: $T \to 0$ ⇒ argmax, $T \to \infty$ ⇒ uniform |
+| $T$ | temperature, $T \gt 0$ | controls how peaked the distribution is | divides every logit *before* $\exp$, scaling all gaps by $1/T$: $T \to 0$ ⇒ argmax, $T \to \infty$ ⇒ uniform |
 | $p_i$ | resulting probability of token $i$ | what [sampling](#sampling-at-inference-time) draws from | left side of the temperature formula |
-| $s_i$ | shorthand for $\text{softmax}(z)_i$ | keeps the gradient formula short | outer factor: the gradient is proportional to the probability itself |
+| $s_i$ | shorthand for $\text{softmax}(z) _ i$ | keeps the gradient formula short | outer factor: the gradient is proportional to the probability itself |
 | $\dfrac{\partial s_i}{\partial z_j}$ | how output $i$ moves when logit $j$ is nudged | needed for backprop through softmax | a full matrix (Jacobian): every output depends on every logit via the shared denominator |
-| $\delta_{ij}$ | Kronecker delta: 1 if $i=j$, else 0 | separates "my own logit" from "someone else's" | inside the parentheses: $i=j$ gives $s_i(1-s_i) > 0$; $i \ne j$ gives $-s_i s_j < 0$ |
+| $\delta _ {ij}$ | Kronecker delta: 1 if $i=j$, else 0 | separates "my own logit" from "someone else's" | inside the parentheses: $i=j$ gives $s_i(1-s_i) \gt 0$; $i \ne j$ gives $-s_i s_j \lt 0$ |
 | $s_j$ | probability of class $j$ | how much class $j$ "steals" from class $i$ | subtracted: the more confident $j$ already is, the more it takes |
 | $\max(z)$ | the largest logit | subtracting it avoids `exp` overflow | it cancels: $e^{z_i - c} / \sum_j e^{z_j - c} = e^{z_i}/\sum_j e^{z_j}$ |
 
@@ -400,8 +397,8 @@ The loss is one number that says "how wrong". Training = push it down.
 
 | Loss | Formula | Used for |
 | --- | --- | --- |
-| **Cross-Entropy** | $\mathcal{L} = -\sum_c y_c \log p_c = -\log p_{\text{target}}$ | classification, **next-token prediction (LLM default)** |
-| **MSE** | $\mathcal{L} = \frac{1}{N}\sum_i (\hat{y}_i - y_i)^2$ | regression (e.g. the [`A*B%C` demo](#workshop-example-a--b--c--teaching-an-mlp-modular-multiplication)) |
+| **Cross-Entropy** | $\mathcal{L} = -\sum_c y_c \log p_c = -\log p _ {\text{target}}$ | classification, **next-token prediction (LLM default)** |
+| **MSE** | $\mathcal{L} = \frac{1}{N}\sum_i (\hat{y} _ i - y_i)^2$ | regression (e.g. the [`A*B%C` demo](#workshop-example-a--b--c--teaching-an-mlp-modular-multiplication)) |
 | **RMSE** | $\sqrt{\text{MSE}}$ | regression, same units as $y$ |
 | **Residual** | $y - \hat{y}$ | raw difference (building block of the above) |
 
@@ -416,9 +413,9 @@ The loss is one number that says "how wrong". Training = push it down.
 | $p_c$ | the model's probability for class $c$ ([softmax](#softmax--logits--probabilities) output) | the model's belief | inside the $\log$ |
 | $\log$ | natural log | maps $(0,1] \to (-\infty, 0]$ and turns products of probabilities into sums | wraps $p_c$: small $p$ ⇒ very negative $\log p$ ⇒ big loss |
 | leading $-$ | sign flip | logs of probabilities are $\le 0$; the minus makes the loss $\ge 0$ | in front of everything |
-| $p_{\text{target}}$ | probability given to the correct class | what's left after the selector | right-most form of cross-entropy |
+| $p _ {\text{target}}$ | probability given to the correct class | what's left after the selector | right-most form of cross-entropy |
 | $N$ | number of examples | averaging makes the loss independent of batch size | in $\frac{1}{N}$ in front of the sum |
-| $\hat{y}_i$ | prediction for example $i$ (hat = "estimated") | the model's answer | first term of the difference |
+| $\hat{y} _ i$ | prediction for example $i$ (hat = "estimated") | the model's answer | first term of the difference |
 | $y_i$ | ground truth for example $i$ | the correct answer | subtracted; squaring makes errors positive and punishes big misses more |
 | $\sqrt{\text{MSE}}$ | root of the MSE | brings the error back to $y$'s units | the outer root |
 
@@ -435,7 +432,7 @@ The loss is one number that says "how wrong". Training = push it down.
 For a language model, average that over every position in the sequence:
 
 $$
-\mathcal{L}_{\text{LM}} = -\frac{1}{T}\sum_{t=1}^{T} \log P_\theta(x_t \mid x_{<t})
+\mathcal{L} _ {\text{LM}} = -\frac{1}{T}\sum _ {t=1}^{T} \log P _ \theta(x_t \mid x _ {\lt t})
 $$
 
 <details>
@@ -443,12 +440,12 @@ $$
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $\mathcal{L}_{\text{LM}}$ | language-modeling loss | the pretraining objective | left side |
+| $\mathcal{L} _ {\text{LM}}$ | language-modeling loss | the pretraining objective | left side |
 | $T$ | number of predicted positions (**not** temperature) | averaging makes long and short sequences comparable | in $\frac{1}{T}$ and as the upper limit of the sum |
 | $t$ | position index | names one prediction | the sum runs $t = 1 \dots T$: **every** position is its own training example |
 | $x_t$ | the real token at position $t$ | the "correct class" | left of the bar $\mid$: what is predicted |
-| $x_{<t}$ | all tokens before position $t$ | the context | right of the bar ("given"); strictly $<$ so the answer is hidden — the [causal mask](#causal-mask--no-peeking-at-the-future) enforces it |
-| $P_\theta(\cdot \mid \cdot)$ | the model's predicted probability | the model's belief about the next token | subscript $\theta$: it depends on the parameters — exactly what training changes |
+| $x _ {\lt t}$ | all tokens before position $t$ | the context | right of the bar ("given"); strictly $\lt$ so the answer is hidden — the [causal mask](#causal-mask--no-peeking-at-the-future) enforces it |
+| $P _ \theta(\cdot \mid \cdot)$ | the model's predicted probability | the model's belief about the next token | subscript $\theta$: it depends on the parameters — exactly what training changes |
 | $\theta$ | all model parameters | the things gradient descent updates | subscript of $P$ |
 | $-\log$ | cross-entropy of one position | the "surprise" at the real token | applied inside the sum, then averaged |
 
@@ -470,7 +467,7 @@ $$
 | $\dfrac{\partial \mathcal{L}}{\partial z}$ | gradient of the loss w.r.t. the logits (a vector) | the signal backprop sends into the network from the very top | left side |
 | $p$ | predicted probabilities (softmax output) | what the model believed | first term |
 | $y$ | one-hot target | what was true | subtracted from $p$ |
-| $p - y$ | per class: $p - 1 < 0$ for the right class, $p > 0$ for the others | descent moves *against* it ⇒ raises the right logit, lowers the rest | the softmax's $\exp$ and the loss's $\log$ cancel, leaving a plain difference |
+| $p - y$ | per class: $p - 1 \lt 0$ for the right class, $p \gt 0$ for the others | descent moves *against* it ⇒ raises the right logit, lowers the rest | the softmax's $\exp$ and the loss's $\log$ cancel, leaving a plain difference |
 
 </details>
 
@@ -541,10 +538,10 @@ Apply the chain rule to the [3-layer picture above](#mlp-anatomy--hidden-vs-acti
 
 $$
 \frac{\partial \mathcal{L}}{\partial W^{[1]}}
-= \frac{\partial \mathcal{L}}{\partial A^{[3]}}\;
-\underbrace{g^{[3]\prime} W^{[3]}}_{\text{layer 3}}\;
-\underbrace{g^{[2]\prime} W^{[2]}}_{\text{layer 2}}\;
-g^{[1]\prime}\,\frac{\partial Z^{[1]}}{\partial W^{[1]}}
+= \frac{\partial \mathcal{L}}{\partial A^{[3]}}\thickspace
+\underbrace{g^{[3]\prime} W^{[3]}} _ {\text{layer 3}}\thickspace
+\underbrace{g^{[2]\prime} W^{[2]}} _ {\text{layer 2}}\thickspace
+g^{[1]\prime}\thinspace \frac{\partial Z^{[1]}}{\partial W^{[1]}}
 $$
 
 <details>
@@ -559,12 +556,12 @@ $$
 | underbraced pair | one $g'W$ per layer crossed | makes the per-layer factor visible | the number of pairs = depth, which is why depth amplifies the problem |
 | $\dfrac{\partial Z^{[1]}}{\partial W^{[1]}}$ | equals the input $x$ | local derivative of the first linear layer w.r.t. its own weights | last factor: the bottom of the path |
 
-Strictly these are matrix / elementwise products; "factor $> 1$ or $< 1$" means their size (norm).
+Strictly these are matrix / elementwise products; "factor $\gt 1$ or $\lt 1$" means their size (norm).
 
 </details>
 
-- If most factors $g' W > 1$ → the product blows up → **exploding gradients**.
-- If most factors $g' W < 1$ → the product shrinks to 0 → **vanishing gradients** (sigmoid's $g' \le 1/4$ makes this the default).
+- If most factors $g' W \gt 1$ → the product blows up → **exploding gradients**.
+- If most factors $g' W \lt 1$ → the product shrinks to 0 → **vanishing gradients** (sigmoid's $g' \le 1/4$ makes this the default).
 
 With 70+ layers this product is the whole story of "why deep nets are hard". Every trick in [§3](#3️⃣-stability-tricks--why-deep-nets-even-work) exists to keep these factors near 1.
 
@@ -619,9 +616,9 @@ SGD ── + momentum ── + adaptive LR (RMSProp/AdaGrad)
 
 | Optimizer | Update rule (intuition) |
 | --- | --- |
-| **SGD** | $w \leftarrow w - \eta\, g$ — step straight down the slope |
+| **SGD** | $w \leftarrow w - \eta\thinspace  g$ — step straight down the slope |
 | **+ Momentum** | $m \leftarrow \beta m + g$, $w \leftarrow w - \eta m$ — a rolling ball that keeps its speed through small bumps |
-| **Adam** | momentum $m$ **plus** a per-parameter scale $v$ (running average of $g^2$): $w \leftarrow w - \eta\, \dfrac{\hat m}{\sqrt{\hat v} + \epsilon}$ — parameters with big noisy gradients take smaller steps |
+| **Adam** | momentum $m$ **plus** a per-parameter scale $v$ (running average of $g^2$): $w \leftarrow w - \eta\thinspace \dfrac{\hat m}{\sqrt{\hat v} + \epsilon}$ — parameters with big noisy gradients take smaller steps |
 | **AdamW** | Adam + **decoupled** weight decay: $\dots - \eta \lambda w$ — shrink weights directly, not through the gradient |
 | **Muon** | orthogonalizes the update matrix for 2-D weights — newer, used at frontier scale |
 
@@ -659,8 +656,8 @@ SGD ── + momentum ── + adaptive LR (RMSProp/AdaGrad)
 $$
 \text{lr}(t) =
 \begin{cases}
-\dfrac{t}{T_{\text{warmup}}}\, \text{lr}_{\max} & t \le T_{\text{warmup}} \\[2ex]
-\text{lr}_{\min} + \tfrac12(\text{lr}_{\max}-\text{lr}_{\min})\Big(1+\cos\big(\pi\,\tfrac{t-T_{\text{warmup}}}{T-T_{\text{warmup}}}\big)\Big) & t > T_{\text{warmup}}
+\dfrac{t}{T _ {\text{warmup}}}\thinspace \text{lr} _ {\max} & t \le T _ {\text{warmup}} \cr
+\text{lr} _ {\min} + \tfrac12(\text{lr} _ {\max}-\text{lr} _ {\min})\Big(1+\cos\big(\pi\thinspace \tfrac{t-T _ {\text{warmup}}}{T-T _ {\text{warmup}}}\big)\Big) & t \gt  T _ {\text{warmup}}
 \end{cases}
 $$
 
@@ -670,20 +667,20 @@ $$
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
 | $t$ | current training step | the input of the schedule | appears in both cases |
-| $T_{\text{warmup}}$ | number of warmup steps | where the ramp ends | the boundary between the two cases |
+| $T _ {\text{warmup}}$ | number of warmup steps | where the ramp ends | the boundary between the two cases |
 | $T$ | total training steps | where the decay ends | in the decay-progress denominator |
-| $\text{lr}_{\max}, \text{lr}_{\min}$ | peak and floor learning rate | the range the schedule moves in | $\text{lr}_{\max}$ scales the ramp; their gap scales the cosine |
-| $\dfrac{t}{T_{\text{warmup}}}$ | warmup progress, $0 \to 1$ | a linear ramp | multiplies $\text{lr}_{\max}$: LR grows from 0 to the peak |
-| $\dfrac{t - T_{\text{warmup}}}{T - T_{\text{warmup}}}$ | decay progress, $0 \to 1$ | measures how far into the decay we are | inside the cosine |
+| $\text{lr} _ {\max}, \text{lr} _ {\min}$ | peak and floor learning rate | the range the schedule moves in | $\text{lr} _ {\max}$ scales the ramp; their gap scales the cosine |
+| $\dfrac{t}{T _ {\text{warmup}}}$ | warmup progress, $0 \to 1$ | a linear ramp | multiplies $\text{lr} _ {\max}$: LR grows from 0 to the peak |
+| $\dfrac{t - T _ {\text{warmup}}}{T - T _ {\text{warmup}}}$ | decay progress, $0 \to 1$ | measures how far into the decay we are | inside the cosine |
 | $\cos(\pi \cdot)$ | goes from $1$ to $-1$ as progress goes $0 \to 1$ | gives a smooth curve | $\pi$ makes it cover exactly half a period |
-| $\tfrac12(1 + \cos)$ | maps that to $1 \to 0$ | a smooth "fade" factor | multiplies the gap $(\text{lr}_{\max} - \text{lr}_{\min})$, then $\text{lr}_{\min}$ is added back as the floor |
-| `cases` brace | piecewise definition | different rules before and after warmup | first row for $t \le T_{\text{warmup}}$, second afterwards |
+| $\tfrac12(1 + \cos)$ | maps that to $1 \to 0$ | a smooth "fade" factor | multiplies the gap $(\text{lr} _ {\max} - \text{lr} _ {\min})$, then $\text{lr} _ {\min}$ is added back as the floor |
+| `cases` brace | piecewise definition | different rules before and after warmup | first row for $t \le T _ {\text{warmup}}$, second afterwards |
 
 </details>
 
 ![Warm-up learning rate schedule](zhihu/images/035f514e01ed.jpg)
 
-*Why warm up? Early in training the gradients are large and unreliable (especially with [Post-LN](#pre-norm-vs-post-norm)); a tiny LR lets [AdamW](#optimizers--sgd--adam--adamw)'s running statistics settle before taking big steps. Source: [LayerNorm note](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).*
+Why warm up? Early in training the gradients are large and unreliable (especially with [Post-LN](#pre-norm-vs-post-norm)); a tiny LR lets [AdamW](#optimizers--sgd--adam--adamw)'s running statistics settle before taking big steps. Source: [LayerNorm note](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).
 
 ### Loss landscape
 
@@ -791,18 +788,18 @@ These four tricks are what let you stack 72 layers without the [vanishing/explod
 
 ### Initialization
 
-**Goal:** keep the variance of activations the same from layer to layer at step 0. For one neuron with $n_{in}$ inputs (independent, zero-mean):
+**Goal:** keep the variance of activations the same from layer to layer at step 0. For one neuron with $n _ {in}$ inputs (independent, zero-mean):
 
 $$
-\text{Var}(z) = n_{in}\,\text{Var}(w)\,\text{Var}(x)
+\text{Var}(z) = n _ {in}\thinspace \text{Var}(w)\thinspace \text{Var}(x)
 $$
 
-So pick $\text{Var}(w) = 1/n_{in}$ to make the factor 1. ReLU zeroes half its inputs, so it needs twice that.
+So pick $\text{Var}(w) = 1/n _ {in}$ to make the factor 1. ReLU zeroes half its inputs, so it needs twice that.
 
 | Activation | Use this init | Formula | Year |
 | --- | --- | --- | --- |
-| ReLU | **He / Kaiming** | $\text{std} = \sqrt{2/n_{in}}$ | 2015 |
-| Tanh/Sigmoid | **Xavier / Glorot** | $\text{std} = \sqrt{2/(n_{in}+n_{out})}$ | 2010 |
+| ReLU | **He / Kaiming** | $\text{std} = \sqrt{2/n _ {in}}$ | 2015 |
+| Tanh/Sigmoid | **Xavier / Glorot** | $\text{std} = \sqrt{2/(n _ {in}+n _ {out})}$ | 2010 |
 
 <details>
 <summary>🔍 Symbol atlas — initialization</summary>
@@ -811,11 +808,11 @@ So pick $\text{Var}(w) = 1/n_{in}$ to make the factor 1. ReLU zeroes half its in
 | --- | --- | --- | --- |
 | $z$ | pre-activation of one neuron, $\sum_i w_i x_i$ | the signal whose size we want to keep stable | left side |
 | $\text{Var}$ | variance: average squared distance from the mean | measures the signal's "size" | applied to each quantity |
-| $n_{in}$ | fan-in: number of inputs to the neuron | each input adds its own variance | multiplies: a sum of $n_{in}$ independent terms has $n_{in}$ times the variance |
-| $\text{Var}(w), \text{Var}(x)$ | spread of weights and of inputs | the two sources of signal size | multiplied: for independent zero-mean variables, $\text{Var}(wx) = \text{Var}(w)\,\text{Var}(x)$ |
+| $n _ {in}$ | fan-in: number of inputs to the neuron | each input adds its own variance | multiplies: a sum of $n _ {in}$ independent terms has $n _ {in}$ times the variance |
+| $\text{Var}(w), \text{Var}(x)$ | spread of weights and of inputs | the two sources of signal size | multiplied: for independent zero-mean variables, $\text{Var}(wx) = \text{Var}(w)\thinspace \text{Var}(x)$ |
 | $\text{std}$ | standard deviation $= \sqrt{\text{Var}}$ | what init functions take as input | left side of the table formulas |
 | $2$ (He) | compensation factor | ReLU zeroes about half its inputs, halving the variance | in the numerator: doubles the weight variance back |
-| $n_{out}$ | fan-out: neurons in the next layer | the backward pass sums over $n_{out}$, not $n_{in}$ | Xavier uses their average: $\frac{2}{n_{in}+n_{out}}$ balances forward and backward |
+| $n _ {out}$ | fan-out: neurons in the next layer | the backward pass sums over $n _ {out}$, not $n _ {in}$ | Xavier uses their average: $\frac{2}{n _ {in}+n _ {out}}$ balances forward and backward |
 
 </details>
 
@@ -875,12 +872,12 @@ The only difference is **which numbers you average over**:
 
 ![LayerNorm: statistics are computed per sample across features](zhihu/images/1beda6be4e67.jpg)
 
-*LayerNorm computes $\mu, \sigma$ within one sample, then applies learned $\gamma, \beta$. Source: [LayerNorm note](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).*
+LayerNorm computes $\mu, \sigma$ within one sample, then applies learned $\gamma, \beta$. Source: [LayerNorm note](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).
 
 | Type | Normalizes across | Formula | Used in |
 | --- | --- | --- | --- |
-| **BatchNorm** | batch dim | $\mu_j = \frac{1}{m}\sum_{i=1}^{m} z^{(i)}_j$ over the batch | CNNs |
-| **LayerNorm** | feature dim per token | $\mu = \frac{1}{d}\sum_{k=1}^{d} x_k$ within one token | original Transformer, BERT, GPT-2 |
+| **BatchNorm** | batch dim | $\mu_j = \frac{1}{m}\sum _ {i=1}^{m} z^{(i)} _ j$ over the batch | CNNs |
+| **LayerNorm** | feature dim per token | $\mu = \frac{1}{d}\sum _ {k=1}^{d} x_k$ within one token | original Transformer, BERT, GPT-2 |
 | **RMSNorm** | scales only (no centering) | $y = \gamma \odot \dfrac{x}{\sqrt{\frac{1}{d}\sum_k x_k^2 + \epsilon}}$ | **modern LLMs** ✅ |
 
 <details>
@@ -890,7 +887,7 @@ The only difference is **which numbers you average over**:
 | --- | --- | --- | --- |
 | $j$ | feature index | BatchNorm keeps separate statistics per feature | subscript on $\mu_j$ and $z_j$ |
 | $m$ | batch size | the number of values BN averages | BN divides by $m$: it averages **across examples** |
-| $z^{(i)}_j$ | feature $j$ of example $i$ | one entry of the activation table | superscript $(i)$ = which example (summed), subscript $j$ = which feature (fixed) |
+| $z^{(i)} _ j$ | feature $j$ of example $i$ | one entry of the activation table | superscript $(i)$ = which example (summed), subscript $j$ = which feature (fixed) |
 | $d$ | number of features (hidden size) | the number of values LN averages | LN/RMSNorm divide by $d$: they average **across one token's features** |
 | $x_k$ | $k$-th feature of the token | one value being averaged | summed over $k = 1 \dots d$ |
 | $\frac{1}{d}\sum_k x_k^2$ | mean of squares | its root is the RMS, the "typical size" | under the root in RMSNorm's denominator — no mean subtracted, no $\beta$ added |
@@ -913,9 +910,9 @@ The only difference is **which numbers you average over**:
 ![Post-LN (a) vs Pre-LN (b) transformer layer](zhihu/images/90dbd1c5c910.jpg)
 
 $$
-\text{Post-LN: } x_{l+1} = \text{LN}\big(x_l + F(x_l)\big)
+\text{Post-LN: } x _ {l+1} = \text{LN}\big(x_l + F(x_l)\big)
 \qquad\qquad
-\text{Pre-LN: } x_{l+1} = x_l + F\big(\text{LN}(x_l)\big)
+\text{Pre-LN: } x _ {l+1} = x_l + F\big(\text{LN}(x_l)\big)
 $$
 
 <details>
@@ -926,14 +923,14 @@ $$
 | $x_l$ | the residual stream entering layer $l$ | the input that both versions transform | on the right of both formulas |
 | $F$ | the sublayer (attention or FFN) | the part that computes something new | inside both formulas |
 | $\text{LN}$ | LayerNorm (or RMSNorm) | stabilizes scale | **its position is the only difference** between the two formulas |
-| $x_{l+1}$ | output, fed to the next layer | the updated stream | left side |
+| $x _ {l+1}$ | output, fed to the next layer | the updated stream | left side |
 | $\text{LN}(x_l + F(x_l))$ | Post-LN: the norm **wraps the sum** | the original 2017 design | the norm sits on the main path, so every layer rescales the whole stream and the identity path is broken |
-| $x_l + F(\text{LN}(x_l))$ | Pre-LN: the norm only touches the **sublayer's input** | the modern design | $x_l$ is added untouched ⇒ a clean highway $x_{l+1} = x_l + \dots$ from bottom to top |
+| $x_l + F(\text{LN}(x_l))$ | Pre-LN: the norm only touches the **sublayer's input** | the modern design | $x_l$ is added untouched ⇒ a clean highway $x _ {l+1} = x_l + \dots$ from bottom to top |
 
 </details>
 
 - **Post-LN** (original 2017 Transformer) puts the norm *on* the residual path → gradients near the output are large, so it **needs [LR warmup](#warmup--cosine-decay)** or it diverges.
-- **Pre-LN** leaves a clean identity path $x_l \to x_{l+1}$ → gradient norms stay even across layers → trains without delicate warmup and goes deeper.
+- **Pre-LN** leaves a clean identity path $x_l \to x _ {l+1}$ → gradient norms stay even across layers → trains without delicate warmup and goes deeper.
 
 **Pre-norm** (norm before sublayer) > **Post-norm** for deep stacks. Modern recipe: **Pre-RMSNorm**. Source: [LayerNorm note §3](<zhihu/Transformer学习笔记三: 为什么Transformer要用LayerNorm:Batch Normalization & Layer Normalization (批量&层标准化).md>).
 
@@ -987,7 +984,7 @@ $$
 
 </details>
 
-The "$+I$" means every block passes gradient through **at least unchanged**, no matter how small $\partial F / \partial x$ gets. Stack 80 blocks and there is still a direct gradient highway from the loss to layer 1.
+The $+I$ term means every block passes gradient through **at least unchanged**, no matter how small $\partial F / \partial x$ gets. Stack 80 blocks and there is still a direct gradient highway from the loss to layer 1.
 
 Adds input back to output. Smooths loss landscape, lets gradients flow → enables 72+ layers (ResNet trained 1000+).
 Variants: additive, scaled, gated, concat, attention-based. Source: [ResNet note](<zhihu/Transformer学习笔记四: ResNet (残差网络).md>).
@@ -997,7 +994,7 @@ Variants: additive, scaled, gated, concat, attention-based. Source: [ResNet note
 | Technique | What | Formula | LLM today? |
 | --- | --- | --- | --- |
 | **Dropout** (10%) | randomly zero neurons | $h' = \dfrac{m \odot h}{1-p},\ m_i \sim \text{Bernoulli}(1-p)$ | ❌ rare in pretraining ([why](#why-modern-llms-dont-use-dropout-anymore)) |
-| **Gradient Clip** (max 1.0) | cap gradient norm | $g \leftarrow g \cdot \min\!\big(1, \tfrac{c}{\lVert g\rVert}\big)$ | ✅ yes |
+| **Gradient Clip** (max 1.0) | cap gradient norm | $g \leftarrow g \cdot \min\negthinspace \big(1, \tfrac{c}{\lVert g\rVert}\big)$ | ✅ yes |
 | **Weight Decay** (10%) | penalize big weights | $w \leftarrow w - \eta\lambda w$ (inside [AdamW](#optimizers--sgd--adam--adamw)) | ✅ yes |
 
 <details>
@@ -1102,7 +1099,7 @@ Encoding a new word = greedily apply the learned merges; anything unknown falls 
 **WordPiece** merges the pair that most increases corpus likelihood (assuming subwords are independent), not just the most frequent one:
 
 $$
-\text{score}(x, y) = \log \frac{P(xy)}{P(x)\,P(y)}
+\text{score}(x, y) = \log \frac{P(xy)}{P(x)\thinspace P(y)}
 $$
 
 <details>
@@ -1113,8 +1110,8 @@ $$
 | $x, y$ | two adjacent subword tokens | the candidates for a merge | arguments of the score |
 | $xy$ | the merged token | what we'd add to the vocab | numerator |
 | $P(\cdot)$ | probability of a token ≈ its count / total count | measures how common a token is | applied to the merged and the separate tokens |
-| $P(x)\,P(y)$ | probability of seeing $x$ then $y$ **if independent** | the "by chance" baseline | denominator |
-| ratio | $> 1$ ⇒ they co-occur more than chance | compares reality with the baseline | numerator over denominator |
+| $P(x)\thinspace P(y)$ | probability of seeing $x$ then $y$ **if independent** | the "by chance" baseline | denominator |
+| ratio | $\gt 1$ ⇒ they co-occur more than chance | compares reality with the baseline | numerator over denominator |
 | $\log$ | turns the ratio into $\log P(xy) - (\log P(x) + \log P(y))$ | equals the gain in corpus log-likelihood from merging | outermost |
 
 This quantity is the pointwise mutual information (PMI) between $x$ and $y$.
@@ -1126,7 +1123,7 @@ Intuition: merge pairs that appear together **more than chance** — `q`+`u` sco
 **Unigram LM** goes the other way: start from a huge vocab, repeatedly drop the subwords whose removal hurts likelihood least. Because one word can have several segmentations, it picks the most probable one:
 
 $$
-P(\vec{x}) = \prod_{i=1}^{m} P(x_i), \qquad \vec{x}^* = \arg\max_{\vec{x} \in \mathcal{S}(X)} P(\vec{x})
+P(\vec{x}) = \prod _ {i=1}^{m} P(x_i), \qquad \vec{x}^ * = \arg\max _ {\vec{x} \in \mathcal{S}(X)} P(\vec{x})
 $$
 
 <details>
@@ -1141,9 +1138,9 @@ $$
 | $\prod$ | product | "unigram" = pieces assumed independent | multiplies piece probabilities into a sequence probability |
 | $\mathcal{S}(X)$ | set of all valid segmentations of $X$ | the search space | under the argmax |
 | $\arg\max$ | the *argument* (segmentation) that maximizes, not the max value | we want the split itself | in front of $P(\vec{x})$ |
-| $\vec{x}^*$ | the best segmentation (star = optimal) | the tokenizer's output | left side of the 2nd equation |
+| $\vec{x}^ *$ | the best segmentation (star = optimal) | the tokenizer's output | left side of the 2nd equation |
 
-Because every extra piece multiplies in another number $< 1$, the product naturally prefers fewer, more common pieces.
+Because every extra piece multiplies in another number $\lt 1$, the product naturally prefers fewer, more common pieces.
 
 </details>
 
@@ -1174,7 +1171,7 @@ Because every extra piece multiplies in another number $< 1$, the product natura
 
 ![BERT input = token + segment + position embeddings](zhihu/images/393335f7e21a.jpg)
 
-*Source: [BERT note](<zhihu/BERT学习笔记一: 基于论文精读的模型详解.md>).*
+Source: [BERT note](<zhihu/BERT学习笔记一: 基于论文精读的模型详解.md>).
 
 ### Positional encoding — from one-hot to sinusoidal to RoPE
 
@@ -1182,7 +1179,7 @@ Because every extra piece multiplies in another number $< 1$, the product natura
 
 ![Self-attention sees all tokens at once — no notion of order](zhihu/images/2a2d39a8e155.jpg)
 
-*Each output $b_i$ looks at all inputs $a_1..a_4$ in parallel; nothing tells it that $a_2$ comes after $a_1$. Source: [Positional Encoding note](<zhihu/Transformer学习笔记一: Positional Encoding (位置编码).md>).*
+Each output $b_i$ looks at all inputs $a_1..a_4$ in parallel; nothing tells it that $a_2$ comes after $a_1$. Source: [Positional Encoding note](<zhihu/Transformer学习笔记一: Positional Encoding (位置编码).md>).
 
 A good position signal should be: **bounded**, **unique per position**, **smooth** (nearby positions look similar), **consistent across lengths**, and able to **extrapolate** to unseen lengths. Watch each step fix one more of these.
 
@@ -1207,7 +1204,7 @@ Just like token embeddings, learn a lookup table: `pos_embedding[0], pos_embeddi
 **Intuition:** instead of learning a table, *compute* a unique fixed pattern per position using sine/cosine waves of different frequencies — like a clock (or odometer) with many hands spinning at different speeds.
 
 $$
-PE_{(t,\,2k)} = \sin(\omega_k t), \qquad PE_{(t,\,2k+1)} = \cos(\omega_k t), \qquad \omega_k = \frac{1}{10000^{2k/d}}
+PE _ {(t,\thinspace 2k)} = \sin(\omega_k t), \qquad PE _ {(t,\thinspace 2k+1)} = \cos(\omega_k t), \qquad \omega_k = \frac{1}{10000^{2k/d}}
 $$
 
 <details>
@@ -1219,7 +1216,7 @@ $$
 | $t$ | position in the sequence | what we encode | multiplied by $\omega_k$: position becomes an **angle** |
 | $2k$, $2k+1$ | an even and the following odd dimension | dimensions come in pairs sharing one frequency | second subscript: even ⇒ $\sin$, odd ⇒ $\cos$ |
 | $k$ | pair index, $0 \dots d/2 - 1$ | picks the frequency | subscript of $\omega$ |
-| $\omega_k$ | angular frequency of pair $k$ | how fast that dial turns as $t$ grows | multiplies $t$ inside $\sin$/$\cos$ |
+| $\omega_k$ | angular frequency of pair $k$ | how fast that dial turns as $t$ grows | multiplies $t$ inside $\sin$ / $\cos$ |
 | $10000$ | base constant | sets the longest wavelength ($2\pi \cdot 10000$) | base of the power |
 | $2k/d$ | goes from 0 to ~1 across dimensions | spreads frequencies over the dimensions | exponent: frequencies fall geometrically from 1 down to $1/10000$ |
 | $d$ | model dimension | PE must match the embedding size to be added | denominator of the exponent |
@@ -1228,19 +1225,18 @@ $$
 
 ![Each dimension is a dial; right-hand dials turn more slowly](zhihu/images/e00f72c5405e.jpg)
 
-*Each row is one position $t$, each column one dimension. Like binary counting, the low dimensions flip fast and the high dimensions flip slowly — but smoothly. Wavelengths grow from $2\pi$ to $2\pi \cdot 10000$.*
+Each row is one position $t$, each column one dimension. Like binary counting, the low dimensions flip fast and the high dimensions flip slowly — but smoothly. Wavelengths grow from $2\pi$ to $2\pi \cdot 10000$.
 
 ![Sinusoidal PE heatmap, 50 positions × 128 dims](zhihu/images/ce98128f8b77.jpg)
 
-*Left columns oscillate quickly with position; right columns barely change. Every row is a unique "barcode" with values in [-1, 1].*
+Left columns oscillate quickly with position; right columns barely change. Every row is a unique "barcode" with values in [-1, 1].
 
 **Why sin *and* cos in pairs?** So that shifting position is a **rotation**. For each frequency, moving from $t$ to $t + \Delta$ is a fixed linear map that doesn't depend on $t$:
 
 $$
-\begin{pmatrix} \sin\omega(t+\Delta) \\ \cos\omega(t+\Delta) \end{pmatrix}
-=
-\begin{pmatrix} \cos\omega\Delta & \sin\omega\Delta \\ -\sin\omega\Delta & \cos\omega\Delta \end{pmatrix}
-\begin{pmatrix} \sin\omega t \\ \cos\omega t \end{pmatrix}
+\begin{pmatrix} \sin\omega(t+\Delta) \cr \cos\omega(t+\Delta) \end{pmatrix} =
+\begin{pmatrix} \cos\omega\Delta & \sin\omega\Delta \cr -\sin\omega\Delta & \cos\omega\Delta \end{pmatrix}
+\begin{pmatrix} \sin\omega t \cr \cos\omega t \end{pmatrix}
 $$
 
 <details>
@@ -1260,7 +1256,7 @@ $$
 Consequence — the dot product of two positions depends **only on their distance**:
 
 $$
-PE_t^\top PE_{t+\Delta} = \sum_k \cos(\omega_k \Delta)
+PE_t^\top PE _ {t+\Delta} = \sum_k \cos(\omega_k \Delta)
 $$
 
 <details>
@@ -1270,7 +1266,7 @@ $$
 | --- | --- | --- | --- |
 | $PE_t$ | encoding vector of position $t$ | one of the two positions compared | first vector |
 | $^\top$ | transpose | row × column = one number (dot product = similarity) | on the first vector |
-| $PE_{t+\Delta}$ | encoding of the position $\Delta$ further on | the other position | second vector |
+| $PE _ {t+\Delta}$ | encoding of the position $\Delta$ further on | the other position | second vector |
 | $\sum_k$ | over frequency pairs | each pair contributes one term | outside the cosine |
 | $\cos(\omega_k\Delta)$ | one pair's contribution: $\sin\sin + \cos\cos = \cos(\text{angle difference})$ | shows only the angle *difference* matters | inside the sum |
 | missing $t$ | $t$ cancelled out | the similarity depends only on distance | and $\cos$ is even, so $\pm\Delta$ give the same value: distance yes, direction no |
@@ -1279,7 +1275,7 @@ $$
 
 ![Dot product between positions vs offset k](zhihu/images/a954d3bfc60b.jpg)
 
-*Symmetric in $\Delta$: it knows "how far", not "which direction". And once $PE$ passes through $W_Q, W_K$, even this clean distance pattern gets scrambled — the motivation for RoPE.*
+Symmetric in $\Delta$: it knows "how far", not "which direction". And once $PE$ passes through $W_Q, W_K$, even this clean distance pattern gets scrambled — the motivation for RoPE.
 
 **Why sin/cos specifically?**
 
@@ -1303,10 +1299,10 @@ Split $q$ (and $k$) into 2-D pairs; rotate pair $k$ by angle $m\theta_k$ at posi
 $$
 q_m = R_m W_Q x_m, \quad k_n = R_n W_K x_n
 \quad\Longrightarrow\quad
-q_m^\top k_n = x_m^\top W_Q^\top\, R_{n-m}\, W_K\, x_n
+q_m^\top k_n = x_m^\top W_Q^\top\thinspace  R _ {n-m}\thinspace  W_K\thinspace  x_n
 $$
 
-because $R_m^\top R_n = R_{n-m}$ (rotating back by $m$ then forward by $n$). The attention score sees **only the offset $n - m$**, and — unlike step 3 — this survives the projection matrices.
+because $R_m^\top R_n = R _ {n-m}$ (rotating back by $m$ then forward by $n$). The attention score sees **only the offset $n - m$**, and — unlike step 3 — this survives the projection matrices.
 
 <details>
 <summary>🔍 Symbol atlas — RoPE</summary>
@@ -1321,8 +1317,8 @@ because $R_m^\top R_n = R_{n-m}$ (rotating back by $m$ then forward by $n$). The
 | $\Longrightarrow$ | "therefore" | separates definitions from the result | between them |
 | $q_m^\top k_n$ | the attention score (before $\div\sqrt{d_k}$) | what we want to understand | left side of the result |
 | $x_m^\top W_Q^\top$ | equals $(W_Q x_m)^\top$ | the query written as a row | transposing a product reverses its order |
-| $R_m^\top R_n = R_{n-m}$ | undo rotation $m$, then apply rotation $n$ | turns two absolute rotations into one relative one | the transpose of a rotation is its inverse |
-| $R_{n-m}$ | rotation by the **offset** | position enters only as relative distance | sits **between** $W_Q^\top$ and $W_K$, so it survives the projections |
+| $R_m^\top R_n = R _ {n-m}$ | undo rotation $m$, then apply rotation $n$ | turns two absolute rotations into one relative one | the transpose of a rotation is its inverse |
+| $R _ {n-m}$ | rotation by the **offset** | position enters only as relative distance | sits **between** $W_Q^\top$ and $W_K$, so it survives the projections |
 
 </details>
 
@@ -1389,7 +1385,7 @@ Attention then asks: **"For each token's Query, which other tokens' Keys match b
 
 ![Self-attention for token a²: q² is matched against every key, weights α′ blend the values](zhihu/images/1ecfc3b9b900.jpg)
 
-*Token $a^2$'s query is compared with every key $k^1..k^4$, giving weights $\alpha'_{2,i}$; the output is the weighted sum $b^2 = \sum_i \alpha'_{2,i} v^i$. Source: [Self-Attention note](<zhihu/Transformer学习笔记二: Self-Attention (自注意力机制).md>).*
+Token $a^2$'s query is compared with every key $k^1..k^4$, giving weights $\alpha' _ {2,i}$; the output is the weighted sum $b^2 = \sum_i \alpha' _ {2,i} v^i$. Source: [Self-Attention note](<zhihu/Transformer学习笔记二: Self-Attention (自注意力机制).md>).
 
 #### Where Q, K, V come from — three linear projections
 
@@ -1404,8 +1400,8 @@ $$
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $X$ | input matrix [$n$ tokens, $d_{\text{model}}$], one row per token | the shared source of all three | on the left: every **row** (token) is multiplied by the same matrix ⇒ same projection for every token |
-| $W^Q, W^K, W^V$ | learned matrices [$d_{\text{model}}$, $d_k$] | three different "lenses" | on the right of $X$; superscripts are **labels**, not powers |
+| $X$ | input matrix [$n$ tokens, $d _ {\text{model}}$], one row per token | the shared source of all three | on the left: every **row** (token) is multiplied by the same matrix ⇒ same projection for every token |
+| $W^Q, W^K, W^V$ | learned matrices [$d _ {\text{model}}$, $d_k$] | three different "lenses" | on the right of $X$; superscripts are **labels**, not powers |
 | $Q, K, V$ | results [$n$, $d_k$]: row $i$ = token $i$'s query / key / value | the inputs to attention | left sides |
 
 </details>
@@ -1475,7 +1471,7 @@ Q, K, V each end up as `[3 tokens × 4 dims]` — same shape as input, but each 
 ### Scaled dot-product attention
 
 $$
-\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
+\text{Attention}(Q, K, V) = \text{softmax}\negthinspace \left(\frac{QK^\top}{\sqrt{d_k}}\right) V
 $$
 
 Read it right-to-left as three steps:
@@ -1488,7 +1484,7 @@ Read it right-to-left as three steps:
 
 ![softmax(QKᵀ/√d_k) gives a seq×seq score matrix, then multiplies V](zhihu/images/fe757a3975b1.jpg)
 
-Per token, that's just the picture above in formula form: $b_i = \sum_j \alpha_{ij} v_j$ with $\alpha_{ij} = \text{softmax}_j\big(q_i \cdot k_j / \sqrt{d_k}\big)$. That `Q·Kᵀ` matrix is the famous "attention pattern" you see visualized as a heatmap.
+Per token, that's just the picture above in formula form: $b_i = \sum_j \alpha _ {ij} v_j$ with $\alpha _ {ij} = \text{softmax} _ j\big(q_i \cdot k_j / \sqrt{d_k}\big)$. That `Q·Kᵀ` matrix is the famous "attention pattern" you see visualized as a heatmap.
 
 <details>
 <summary>🔍 Symbol atlas — scaled dot-product attention</summary>
@@ -1501,10 +1497,10 @@ Per token, that's just the picture above in formula form: $b_i = \sum_j \alpha_{
 | $\text{softmax}$ | applied row by row | turns scores into weights summing to 1 per query | wraps the scaled scores |
 | $V$ | values [$n$, $d_v$] | the content to be mixed | rightmost: weights × $V$ = weighted average of value rows |
 | $b_i$ | output for token $i$ | the new representation | per-token view, left side |
-| $\alpha_{ij}$ | how much token $i$ attends to token $j$ | one attention weight | row $i$, column $j$ of the weight matrix |
-| $\text{softmax}_j$ | softmax over $j$ (the keys) | normalizes across what token $i$ looks at | its subscript says which index is normalized |
+| $\alpha _ {ij}$ | how much token $i$ attends to token $j$ | one attention weight | row $i$, column $j$ of the weight matrix |
+| $\text{softmax} _ j$ | softmax over $j$ (the keys) | normalizes across what token $i$ looks at | its subscript says which index is normalized |
 | $q_i \cdot k_j$ | similarity of token $i$'s question and token $j$'s label | the raw match score | inside the softmax |
-| $v_j$ | token $j$'s content | what gets passed along | multiplied by $\alpha_{ij}$ and summed over $j$ |
+| $v_j$ | token $j$'s content | what gets passed along | multiplied by $\alpha _ {ij}$ and summed over $j$ |
 
 </details>
 
@@ -1513,7 +1509,7 @@ Per token, that's just the picture above in formula form: $b_i = \sum_j \alpha_{
 Suppose each entry of $q$ and $k$ is roughly independent with mean 0 and variance 1. Their dot product sums $d_k$ such terms:
 
 $$
-q \cdot k = \sum_{m=1}^{d_k} q_m k_m \quad\Rightarrow\quad \text{Var}(q \cdot k) = d_k
+q \cdot k = \sum _ {m=1}^{d_k} q_m k_m \quad\Rightarrow\quad \text{Var}(q \cdot k) = d_k
 $$
 
 <details>
@@ -1531,16 +1527,16 @@ Dividing by $\sqrt{d_k}$ divides the variance by $d_k$, bringing it back to 1.
 
 </details>
 
-With $d_k = 64$, scores have standard deviation 8 → softmax becomes nearly one-hot → its gradient $s_i(\delta_{ij}-s_j) \approx 0$ ([softmax saturation](#softmax--logits--probabilities)) → attention stops learning. Dividing by $\sqrt{d_k}$ brings the variance back to 1. Same "keep variance ≈ 1" idea as [He init](#initialization).
+With $d_k = 64$, scores have standard deviation 8 → softmax becomes nearly one-hot → its gradient $s_i(\delta _ {ij}-s_j) \approx 0$ ([softmax saturation](#softmax--logits--probabilities)) → attention stops learning. Dividing by $\sqrt{d_k}$ brings the variance back to 1. Same "keep variance ≈ 1" idea as [He init](#initialization).
 
 ### Causal mask — no peeking at the future
 
 A decoder (GPT) must predict token $t$ using only tokens $\le t$. So before softmax, add a mask $M$ that is $0$ where allowed and $-\infty$ where the key is in the future:
 
 $$
-\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V,
+\text{Attention}(Q,K,V) = \text{softmax}\negthinspace \left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V,
 \qquad
-M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}
+M _ {ij} = \begin{cases} 0 & j \le i \cr -\infty & j \gt  i \end{cases}
 $$
 
 <details>
@@ -1552,14 +1548,14 @@ $$
 | $i$ | row = query position (the token doing the looking) | identifies whose view we are masking | first subscript |
 | $j$ | column = key position (the token being looked at) | identifies what is visible | second subscript |
 | $j \le i$ | key is at or before the query | allowed context | first case ⇒ $0$: adding 0 leaves the score unchanged |
-| $j > i$ | key is in the future | must stay hidden | second case ⇒ $-\infty$: $e^{-\infty} = 0$ weight |
+| $j \gt  i$ | key is in the future | must stay hidden | second case ⇒ $-\infty$: $e^{-\infty} = 0$ weight |
 | $+ M$ | adding the mask to the scores | implements the hiding | **after** scaling and **before** softmax, so the remaining weights still sum to 1 |
 
 </details>
 
 ![Causal mask: 1s mark future positions that get replaced by a huge negative number](zhihu/images/138a5506a098.jpg)
 
-*Row $i$ = token $i$. The 1s (upper triangle) mark future positions; their scores become $-\infty$ (in code `-1e9`), so $e^{-\infty} = 0$ after softmax. Source: [Self-Attention note](<zhihu/Transformer学习笔记二: Self-Attention (自注意力机制).md>).*
+Row $i$ = token $i$. The 1s (upper triangle) mark future positions; their scores become $-\infty$ (in code `-1e9`), so $e^{-\infty} = 0$ after softmax. Source: [Self-Attention note](<zhihu/Transformer学习笔记二: Self-Attention (自注意力机制).md>).
 
 This one triangle is what makes a model **[autoregressive](#autoregressive-generation--how-llms-actually-talk)** — and it lets training compute the loss for **all positions in parallel** while each position still only sees its past.
 
@@ -1593,24 +1589,24 @@ This one triangle is what makes a model **[autoregressive](#autoregressive-gener
 Run $h$ attention "heads" in parallel, each with its own smaller $W^Q_i, W^K_i, W^V_i$, then concatenate and mix with $W^O$:
 
 $$
-\text{head}_i = \text{Attention}(XW_i^Q,\, XW_i^K,\, XW_i^V), \qquad
-\text{MultiHead}(X) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\, W^O
+\text{head} _ i = \text{Attention}(XW_i^Q,\thinspace  XW_i^K,\thinspace  XW_i^V), \qquad
+\text{MultiHead}(X) = \text{Concat}(\text{head} _ 1, \dots, \text{head} _ h)\thinspace  W^O
 $$
 
-with $d_k = d_v = d_{\text{model}} / h$, so the total compute equals one big head.
+with $d_k = d_v = d _ {\text{model}} / h$, so the total compute equals one big head.
 
 <details>
 <summary>🔍 Symbol atlas — multi-head attention</summary>
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $h$ | number of heads | more heads = more parallel patterns | upper index of the concat; divides $d_{\text{model}}$ |
+| $h$ | number of heads | more heads = more parallel patterns | upper index of the concat; divides $d _ {\text{model}}$ |
 | $i$ | head index | names one head | subscript on each head's matrices |
-| $W_i^Q, W_i^K, W_i^V$ | head $i$'s own projections [$d_{\text{model}}$, $d_k$] | each head can look for a different pattern | inside head $i$'s attention call |
-| $\text{head}_i$ | output of head $i$ [$n$, $d_v$] | one head's view | left side; listed inside $\text{Concat}$ |
+| $W_i^Q, W_i^K, W_i^V$ | head $i$'s own projections [$d _ {\text{model}}$, $d_k$] | each head can look for a different pattern | inside head $i$'s attention call |
+| $\text{head} _ i$ | output of head $i$ [$n$, $d_v$] | one head's view | left side; listed inside $\text{Concat}$ |
 | $\text{Concat}$ | glue the heads side by side ⇒ [$n$, $h \cdot d_v$] | collects all heads | wraps the head list |
-| $W^O$ | output projection [$d_{\text{model}}$, $d_{\text{model}}$] | mixes information across heads | multiplies the concatenation last |
-| $d_k = d_{\text{model}}/h$ | per-head width | keeps the total cost equal to one big head | stated under the formula |
+| $W^O$ | output projection [$d _ {\text{model}}$, $d _ {\text{model}}$] | mixes information across heads | multiplies the concatenation last |
+| $d_k = d _ {\text{model}}/h$ | per-head width | keeps the total cost equal to one big head | stated under the formula |
 
 </details>
 
@@ -1622,7 +1618,7 @@ with $d_k = d_v = d_{\text{model}} / h$, so the total compute equals one big hea
 
 ### Attention variants (KV-cache savings)
 
-During [generation](#autoregressive-generation--how-llms-actually-talk) we cache every past token's K and V. Its size per token is $2 \times n_{\text{layers}} \times n_{\text{kv\_heads}} \times d_{\text{head}} \times \text{bytes}$. Example (7B-class, 32 layers, 32 KV heads × 128, fp16): ≈ 0.5 MB per token → **2 GB for a 4K context**, per sequence. Fewer K/V heads = proportionally smaller cache:
+During [generation](#autoregressive-generation--how-llms-actually-talk) we cache every past token's K and V. Its size per token is $2 \times n _ {\text{layers}} \times n _ {\text{kv}} \times d _ {\text{head}} \times \text{bytes}$. Example (7B-class, 32 layers, 32 KV heads × 128, fp16): ≈ 0.5 MB per token → **2 GB for a 4K context**, per sequence. Fewer K/V heads = proportionally smaller cache:
 
 | | Q heads | K/V heads | Cache vs MHA | Used by |
 | --- | --- | --- | --- | --- |
@@ -1637,9 +1633,9 @@ During [generation](#autoregressive-generation--how-llms-actually-talk) we cache
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
 | $2$ | one K and one V | both are cached | leading factor |
-| $n_{\text{layers}}$ | number of layers | every layer keeps its own cache | multiplies everything |
-| $n_{\text{kv\_heads}}$ | number of K/V heads | the knob GQA/MQA turn down | multiplies the per-head size |
-| $d_{\text{head}}$ | width of each head | numbers stored per head per token | per-head size |
+| $n _ {\text{layers}}$ | number of layers | every layer keeps its own cache | multiplies everything |
+| $n _ {\text{kv}}$ | number of K/V heads | the knob GQA/MQA turn down | multiplies the per-head size |
+| $d _ {\text{head}}$ | width of each head | numbers stored per head per token | per-head size |
 | $\text{bytes}$ | bytes per number (fp16 = 2) | converts numbers to memory | last factor |
 
 Multiply by the context length (and batch size) for the total cache.
@@ -1693,7 +1689,7 @@ End of stack: `RMSNorm → unembedding → softmax → next-token probs`.
 The FFN inside every transformer block is **a 2-layer [MLP](#mlp-anatomy--hidden-vs-activation-layers) applied per token**. This is where most of the model's parameters and "knowledge" live.
 
 $$
-\text{FFN}(x) = \text{GELU}(x W_{\text{up}} + b_1)\, W_{\text{down}} + b_2
+\text{FFN}(x) = \text{GELU}(x W _ {\text{up}} + b_1)\thinspace  W _ {\text{down}} + b_2
 $$
 
 <details>
@@ -1701,12 +1697,12 @@ $$
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $x$ | one token's vector [$d_{\text{model}}$] | the FFN works per token | leftmost input |
-| $W_{\text{up}}$ | [$d_{\text{model}}$, $d_{ff}$] | expands to the wider hidden size | first matrix |
-| $b_1$ | bias [$d_{ff}$] | per-unit threshold | added before the activation |
+| $x$ | one token's vector [$d _ {\text{model}}$] | the FFN works per token | leftmost input |
+| $W _ {\text{up}}$ | [$d _ {\text{model}}$, $d _ {ff}$] | expands to the wider hidden size | first matrix |
+| $b_1$ | bias [$d _ {ff}$] | per-unit threshold | added before the activation |
 | $\text{GELU}$ | activation | the nonlinearity | between the two matrices |
-| $W_{\text{down}}$ | [$d_{ff}$, $d_{\text{model}}$] | projects back to the residual width | second matrix |
-| $b_2$ | bias [$d_{\text{model}}$] (Llama drops biases) | output offset | added last |
+| $W _ {\text{down}}$ | [$d _ {ff}$, $d _ {\text{model}}$] | projects back to the residual width | second matrix |
+| $b_2$ | bias [$d _ {\text{model}}$] (Llama drops biases) | output offset | added last |
 
 </details>
 
@@ -1744,7 +1740,7 @@ Vanilla FFN: `out = (ReLU(x · W_up)) · W_down`  → 2 matrices.
 SwiGLU FFN (Llama, modern LLMs):
 
 $$
-\text{FFN}_{\text{SwiGLU}}(x) = \big(\text{Swish}(xW_{\text{gate}}) \odot xW_{\text{up}}\big)\, W_{\text{down}}, \qquad \text{Swish}(z) = z\,\sigma(z)
+\text{FFN} _ {\text{SwiGLU}}(x) = \big(\text{Swish}(xW _ {\text{gate}}) \odot xW _ {\text{up}}\big)\thinspace  W _ {\text{down}}, \qquad \text{Swish}(z) = z\thinspace \sigma(z)
 $$
 
 <details>
@@ -1752,11 +1748,11 @@ $$
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $W_{\text{gate}}$, $W_{\text{up}}$ | two parallel [$d$, $d_{ff}$] matrices | one computes the gate, one the content | both applied to the same $x$ |
-| $\text{Swish}(z) = z\,\sigma(z)$ | smooth ReLU-like curve | turns the gate projection into "how open" each feature is | wraps only the gate branch |
+| $W _ {\text{gate}}$, $W _ {\text{up}}$ | two parallel [$d$, $d _ {ff}$] matrices | one computes the gate, one the content | both applied to the same $x$ |
+| $\text{Swish}(z) = z\thinspace \sigma(z)$ | smooth ReLU-like curve | turns the gate projection into "how open" each feature is | wraps only the gate branch |
 | $\sigma$ | sigmoid | squashes the gate into $(0,1)$ inside Swish | inside the Swish definition |
 | $\odot$ | elementwise product | gate value $j$ scales content feature $j$ | between the two branches |
-| $W_{\text{down}}$ | [$d_{ff}$, $d$] | back to model width | applied last |
+| $W _ {\text{down}}$ | [$d _ {ff}$, $d$] | back to model width | applied last |
 
 </details>
 
@@ -1769,16 +1765,16 @@ $$
 
 Three matrices: a gate, an up-projection, and a down-projection. The gate **learns which features to let through** at each token — sharper, more selective than plain ReLU/GELU.
 
-**Where 11008 comes from:** three matrices instead of two would add 50% params, so the hidden width is shrunk to keep the budget equal: $3 \cdot d \cdot d_{ff} = 2 \cdot d \cdot 4d \Rightarrow d_{ff} = \tfrac{8}{3}d$. For $d = 4096$ that's ≈ 10923, rounded up to a hardware-friendly multiple → **11008**.
+**Where 11008 comes from:** three matrices instead of two would add 50% params, so the hidden width is shrunk to keep the budget equal: $3 \cdot d \cdot d _ {ff} = 2 \cdot d \cdot 4d \Rightarrow d _ {ff} = \tfrac{8}{3}d$. For $d = 4096$ that's ≈ 10923, rounded up to a hardware-friendly multiple → **11008**.
 
 <details>
 <summary>🔍 Symbol atlas — SwiGLU width</summary>
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $3 \cdot d \cdot d_{ff}$ | parameters of three $d \times d_{ff}$ matrices (SwiGLU) | the new cost | left side |
+| $3 \cdot d \cdot d _ {ff}$ | parameters of three $d \times d _ {ff}$ matrices (SwiGLU) | the new cost | left side |
 | $2 \cdot d \cdot 4d$ | parameters of a vanilla FFN (two matrices, $4\times$ width) | the budget to match | right side |
-| $\tfrac{8}{3}d$ | the solution for $d_{ff}$ | the SwiGLU width at equal parameters | after $\Rightarrow$ |
+| $\tfrac{8}{3}d$ | the solution for $d _ {ff}$ | the SwiGLU width at equal parameters | after $\Rightarrow$ |
 
 </details>
 
@@ -1812,7 +1808,7 @@ The same block can be wired two ways, and the only real difference is the [causa
 | --- | --- | --- |
 | Attention | bidirectional — sees left **and** right | causal — sees only the left |
 | Pretraining task | **Masked LM**: hide 15% of tokens, predict them (+ next-sentence prediction) | **Next-token prediction** |
-| Loss | $-\sum_{i \in \text{masked}} \log P(x_i \mid \tilde{x})$ | $-\sum_t \log P(x_t \mid x_{<t})$ |
+| Loss | $-\sum _ {i \in \text{masked}} \log P(x_i \mid \tilde{x})$ | $-\sum_t \log P(x_t \mid x _ {\lt t})$ |
 | Good at | understanding (classification, retrieval, embeddings) | generation (chat, code) |
 
 <details>
@@ -1823,7 +1819,7 @@ The same block can be wired two ways, and the only real difference is the [causa
 | $\text{masked}$ | set of positions chosen for masking (15%) | only hidden tokens are scored | under the sum |
 | $x_i$ | the original token at masked position $i$ | the answer | left of the bar |
 | $\tilde{x}$ | the corrupted input (with `[MASK]` / random tokens) | what BERT actually sees | right of the bar: **both sides** visible, just with holes |
-| $x_{<t}$ | prefix only | what GPT sees | right of the bar in the decoder loss (see [LM loss](#loss-functions)) |
+| $x _ {\lt t}$ | prefix only | what GPT sees | right of the bar in the decoder loss (see [LM loss](#loss-functions)) |
 
 </details>
 
@@ -1847,7 +1843,7 @@ Decoders won for LLMs: next-token prediction uses **every** token as a training 
 
 ### Pretraining
 
-- **Objective**: next-token prediction with [cross-entropy](#loss-functions), $\mathcal{L} = -\frac{1}{T}\sum_t \log P_\theta(x_t \mid x_{<t})$, computed for every position in parallel thanks to the [causal mask](#causal-mask--no-peeking-at-the-future).
+- **Objective**: next-token prediction with [cross-entropy](#loss-functions), $\mathcal{L} = -\frac{1}{T}\sum_t \log P _ \theta(x_t \mid x _ {\lt t})$, computed for every position in parallel thanks to the [causal mask](#causal-mask--no-peeking-at-the-future).
 - **Scaling Laws** (Chinchilla): performance ∝ f(data, params, compute). Balance all three — rule of thumb ~20 training tokens per parameter.
 - **No dropout** — single-epoch regime, see [why](#why-modern-llms-dont-use-dropout-anymore).
 
@@ -1863,20 +1859,20 @@ Decoders won for LLMs: next-token prediction uses **every** token as a training 
 
 ![Zero-shot vs one-shot vs few-shot prompting](zhihu/images/4d329b7d29be.jpg)
 
-*Zero-shot = task description only; few-shot = description + a few examples, all inside the prompt, **no weight updates**. Source: [GPT note](<zhihu/ChatGPT技术解析系列之: GPT1, GPT2与GPT3.md>).*
+Zero-shot = task description only; few-shot = description + a few examples, all inside the prompt, **no weight updates**. Source: [GPT note](<zhihu/ChatGPT技术解析系列之: GPT1, GPT2与GPT3.md>).
 
 ### Fine-tuning (SFT and LoRA)
 
-**SFT (supervised fine-tuning)** = keep the same next-token loss, but on curated `(prompt, ideal response)` pairs — "show the model what a good answer looks like". InstructGPT used ~13K human-written demonstrations. (GPT-1 also kept the LM loss as a helper: $L = L_{\text{task}} + \lambda L_{\text{LM}}$.)
+**SFT (supervised fine-tuning)** = keep the same next-token loss, but on curated `(prompt, ideal response)` pairs — "show the model what a good answer looks like". InstructGPT used ~13K human-written demonstrations. (GPT-1 also kept the LM loss as a helper: $L = L _ {\text{task}} + \lambda L _ {\text{LM}}$.)
 
 <details>
 <summary>🔍 Symbol atlas — GPT-1 combined loss</summary>
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $L_{\text{task}}$ | supervised loss of the downstream task | the main goal | first term |
-| $L_{\text{LM}}$ | language-model loss on the same text | keeps general language skill | second term |
-| $\lambda$ | weight of the auxiliary term | balances the two goals | multiplies only $L_{\text{LM}}$ |
+| $L _ {\text{task}}$ | supervised loss of the downstream task | the main goal | first term |
+| $L _ {\text{LM}}$ | language-model loss on the same text | keeps general language skill | second term |
+| $\lambda$ | weight of the auxiliary term | balances the two goals | multiplies only $L _ {\text{LM}}$ |
 
 </details>
 
@@ -1915,7 +1911,7 @@ For $d = k = 4096$, $r = 8$: $2 \cdot 4096 \cdot 8 = 65{,}536$ trainable params 
 
 ![InstructGPT's 3 steps: SFT, reward model, PPO](zhihu/images/52c847ffe406.jpg)
 
-*Step 1 = [SFT](#fine-tuning-sft-and-lora). Step 2 = train a reward model on human rankings. Step 3 = optimize the policy against it with PPO. Source: [InstructGPT note](<zhihu/ChatGPT技术解析系列之: 训练框架InstructGPT.md>).*
+Step 1 = [SFT](#fine-tuning-sft-and-lora). Step 2 = train a reward model on human rankings. Step 3 = optimize the policy against it with PPO. Source: [InstructGPT note](<zhihu/ChatGPT技术解析系列之: 训练框架InstructGPT.md>).
 
 ```text
   prompt ──► model ──► response A
@@ -1948,7 +1944,7 @@ More background: [RL / MDP note](<zhihu/强化学习解析一: 马尔可夫决�
 **Step 2 — reward model.** Humans rank $K$ answers; every pair (winner $y_w$, loser $y_l$) becomes a training example:
 
 $$
-\mathcal{L}_{\text{RM}}(\theta) = -\,\mathbb{E}_{(x,\, y_w,\, y_l)}\Big[\log \sigma\big(r_\theta(x, y_w) - r_\theta(x, y_l)\big)\Big]
+\mathcal{L} _ {\text{RM}}(\theta) = -\thinspace \mathbb{E} _ {(x,\thinspace  y_w,\thinspace  y_l)}\Big[\log \sigma\big(r _ \theta(x, y_w) - r _ \theta(x, y_l)\big)\Big]
 $$
 
 <details>
@@ -1959,11 +1955,11 @@ $$
 | $\theta$ | reward-model parameters | what this loss trains | argument of $\mathcal{L}$ and subscript of $r$ |
 | $x$ | prompt | the shared question | first argument of both scores |
 | $y_w, y_l$ | preferred ("win") and rejected ("lose") responses | the human's choice | subscripts mark the winner and loser |
-| $r_\theta(x, y)$ | scalar score of response $y$ to prompt $x$ | the reward model's output | inside the gap |
-| $r_\theta(x, y_w) - r_\theta(x, y_l)$ | score gap | only the **difference** matters: adding a constant to all scores changes nothing | argument of $\sigma$ |
+| $r _ \theta(x, y)$ | scalar score of response $y$ to prompt $x$ | the reward model's output | inside the gap |
+| $r _ \theta(x, y_w) - r _ \theta(x, y_l)$ | score gap | only the **difference** matters: adding a constant to all scores changes nothing | argument of $\sigma$ |
 | $\sigma$ | sigmoid | turns the gap into "probability the human prefers $y_w$" (Bradley–Terry model) | wraps the gap |
 | $-\log$ | cross-entropy for the event "$y_w$ wins" | makes it a loss to minimize | outside $\sigma$ |
-| $\mathbb{E}_{(x, y_w, y_l)}$ | average over all labeled comparison pairs | trains on the whole dataset | subscript lists what is averaged over |
+| $\mathbb{E} _ {(x, y_w, y_l)}$ | average over all labeled comparison pairs | trains on the whole dataset | subscript lists what is averaged over |
 
 The InstructGPT paper also divides by $\binom{K}{2}$, the number of pairs from one ranking of $K$ answers, so prompts with many answers don't dominate.
 
@@ -1974,7 +1970,7 @@ Intuition: only the **gap** in scores matters; $\sigma$ turns the gap into "prob
 **Step 3 — PPO with a KL leash.** Maximize reward, but don't drift too far from the SFT model (or it learns to game the reward model):
 
 $$
-\text{objective}(\phi) = \mathbb{E}_{(x,y) \sim \pi_\phi^{\text{RL}}}\Big[r_\theta(x,y) - \beta \log \frac{\pi_\phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)}\Big] + \gamma\, \mathbb{E}_{x \sim D_{\text{pretrain}}}\big[\log \pi_\phi^{\text{RL}}(x)\big]
+\text{objective}(\phi) = \mathbb{E} _ {(x,y) \sim \pi _ \phi^{\text{RL}}}\Big[r _ \theta(x,y) - \beta \log \frac{\pi _ \phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)}\Big] + \gamma\thinspace \mathbb{E} _ {x \sim D _ {\text{pretrain}}}\big[\log \pi _ \phi^{\text{RL}}(x)\big]
 $$
 
 - term 1: reward-model score — higher is better
@@ -1987,22 +1983,22 @@ $$
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
 | $\phi$ | parameters of the policy being trained | what this objective updates | argument of the objective |
-| $\pi_\phi^{\text{RL}}$ | the policy (the LLM being optimized) | generates the responses | in the 1st expectation's subscript and the numerator of the ratio |
+| $\pi _ \phi^{\text{RL}}$ | the policy (the LLM being optimized) | generates the responses | in the 1st expectation's subscript and the numerator of the ratio |
 | $\pi^{\text{SFT}}$ | the frozen SFT model | the reference point | denominator of the log ratio |
-| $(x, y) \sim \pi_\phi^{\text{RL}}$ | prompts from the dataset, responses **sampled from the current policy** | RL learns from its own outputs | subscript of the 1st expectation |
-| $r_\theta(x, y)$ | reward-model score | what we want high | first term inside the brackets |
+| $(x, y) \sim \pi _ \phi^{\text{RL}}$ | prompts from the dataset, responses **sampled from the current policy** | RL learns from its own outputs | subscript of the 1st expectation |
+| $r _ \theta(x, y)$ | reward-model score | what we want high | first term inside the brackets |
 | $\beta$ | KL coefficient | how strongly drifting is punished | multiplies the log ratio |
-| $\log \dfrac{\pi_\phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)}$ | per-sample KL estimate | positive when the policy makes $y$ more likely than SFT did | subtracted: a penalty |
+| $\log \dfrac{\pi _ \phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)}$ | per-sample KL estimate | positive when the policy makes $y$ more likely than SFT did | subtracted: a penalty |
 | $\gamma$ | weight of the pretraining term | balances skill retention vs reward | multiplies the 2nd expectation |
-| $D_{\text{pretrain}}$ | original pretraining data | the text whose likelihood we protect | subscript of the 2nd expectation |
-| $\log \pi_\phi^{\text{RL}}(x)$ | LM log-likelihood of pretraining text | keeps general skills | added: also maximized |
+| $D _ {\text{pretrain}}$ | original pretraining data | the text whose likelihood we protect | subscript of the 2nd expectation |
+| $\log \pi _ \phi^{\text{RL}}(x)$ | LM log-likelihood of pretraining text | keeps general skills | added: also maximized |
 
 </details>
 
 **DPO** skips the separate reward model and PPO loop: it plugs the same pairwise idea directly into the policy, using log-prob ratios against a frozen reference model as an implicit reward:
 
 $$
-\mathcal{L}_{\text{DPO}} = -\,\mathbb{E}\left[\log \sigma\!\left(\beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right)\right]
+\mathcal{L} _ {\text{DPO}} = -\thinspace \mathbb{E}\left[\log \sigma\negthinspace \left(\beta \log \frac{\pi _ \theta(y_w \mid x)}{\pi _ {\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi _ \theta(y_l \mid x)}{\pi _ {\text{ref}}(y_l \mid x)}\right)\right]
 $$
 
 <details>
@@ -2010,16 +2006,16 @@ $$
 
 | Symbol | Meaning | Why it appears | Why in this position |
 | --- | --- | --- | --- |
-| $\pi_\theta$ | the policy being trained | what DPO updates | numerators |
-| $\pi_{\text{ref}}$ | frozen reference model (usually SFT) | the anchor | denominators |
-| $\beta \log \dfrac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)}$ | implicit reward of $y$ | how much more likely the policy made $y$ than the reference | appears once for $y_w$, once for $y_l$ |
+| $\pi _ \theta$ | the policy being trained | what DPO updates | numerators |
+| $\pi _ {\text{ref}}$ | frozen reference model (usually SFT) | the anchor | denominators |
+| $\beta \log \dfrac{\pi _ \theta(y \mid x)}{\pi _ {\text{ref}}(y \mid x)}$ | implicit reward of $y$ | how much more likely the policy made $y$ than the reference | appears once for $y_w$, once for $y_l$ |
 | $\beta$ | strength (plays the KL role) | limits drift from the reference | scales both log ratios |
 | winner − loser | gap between the two implicit rewards | same structure as the reward model | argument of $\sigma$ |
-| $\sigma$, $-\log$, $\mathbb{E}$ | sigmoid, cross-entropy, average | same roles as in $\mathcal{L}_{\text{RM}}$ | wrapping the gap from inside out |
+| $\sigma$, $-\log$, $\mathbb{E}$ | sigmoid, cross-entropy, average | same roles as in $\mathcal{L} _ {\text{RM}}$ | wrapping the gap from inside out |
 
 </details>
 
-Same shape as $\mathcal{L}_{\text{RM}}$ — simpler, more stable, now very common.
+Same shape as $\mathcal{L} _ {\text{RM}}$ — simpler, more stable, now very common.
 
 ### Evaluation
 
@@ -2028,7 +2024,7 @@ Same shape as $\mathcal{L}_{\text{RM}}$ — simpler, more stable, now very commo
 - **Task-specific**: code, math, reasoning. For code, **pass@k** = chance that at least one of $k$ samples passes the unit tests, estimated from $n \ge k$ samples with $c$ correct:
 
 $$
-\text{pass@}k = \mathbb{E}_{\text{problems}}\left[1 - \frac{\binom{n-c}{k}}{\binom{n}{k}}\right]
+\text{pass@}k = \mathbb{E} _ {\text{problems}}\left[1 - \frac{\binom{n-c}{k}}{\binom{n}{k}}\right]
 $$
 
 <details>
@@ -2044,7 +2040,7 @@ $$
 | $\binom{n-c}{k}$ | ways to choose $k$ samples **all from the $n - c$ wrong ones** | the all-wrong picks | numerator |
 | ratio | probability that all $k$ picks are wrong | the failure probability | inside the brackets |
 | $1 - \dots$ | probability that at least one is right | the success probability | flips the failure probability |
-| $\mathbb{E}_{\text{problems}}$ | average over the benchmark | one score for the whole test set | outermost |
+| $\mathbb{E} _ {\text{problems}}$ | average over the benchmark | one score for the whole test set | outermost |
 
 </details>
 
@@ -2066,7 +2062,7 @@ Source: [Codex note](<zhihu/ChatGPT技术解析系列之: 赋予GPT写代码能�
 Mathematically, the model factorizes a sentence's probability as a chain:
 
 $$
-P(x_1, x_2, \dots, x_n) = \prod_{t=1}^{n} P(x_t \mid x_1, \dots, x_{t-1})
+P(x_1, x_2, \dots, x_n) = \prod _ {t=1}^{n} P(x_t \mid x_1, \dots, x _ {t-1})
 $$
 
 <details>
@@ -2077,7 +2073,7 @@ $$
 | $x_1 \dots x_n$ | the tokens of a sequence | what we assign a probability to | arguments on the left |
 | $P(x_1, \dots, x_n)$ | probability of the whole sequence | the joint probability | left side |
 | $\prod_t$ | product over positions | chain rule of probability: any joint probability splits this way | right side, outermost |
-| $P(x_t \mid x_1, \dots, x_{t-1})$ | probability of token $t$ given its prefix | exactly what one forward pass outputs | factor in the product |
+| $P(x_t \mid x_1, \dots, x _ {t-1})$ | probability of token $t$ given its prefix | exactly what one forward pass outputs | factor in the product |
 | $t = 1$ term | $P(x_1)$ with an empty prefix (in practice: given a start token) | the first factor | lower limit of the product |
 
 Take $-\log$ of both sides and divide by $n$: you get the [LM loss](#loss-functions).
@@ -2184,7 +2180,7 @@ $$
 
 </details>
 
-$K = 4$: $M = 1$ → 75%; $M = 16$ → $3/19 \approx 16\%$. GPipe found $M \ge 4K$ makes the bubble negligible.
+$K = 4$: $M = 1$ → 75%; $M = 16$ → $3/19 \approx$ 16%. GPipe found $M \ge 4K$ makes the bubble negligible.
 
 **Activation checkpointing (re-materialization):** backprop needs every layer's activations, which eats memory. Instead, keep only each stage's input and **recompute** the forward pass during backward — trade ~30% more compute for far less memory. (This micro-batching is also why [BatchNorm](#batchnorm-vs-layernorm-vs-rmsnorm--which-axis) is awkward at scale and LayerNorm isn't.)
 
@@ -2210,15 +2206,15 @@ Each formula's **🔍 Symbol atlas** (what every symbol means, why it's there, w
 | --- | --- | --- |
 | Neuron / layer | $A^{[l]} = g(W^{[l]}A^{[l-1]} + b^{[l]})$ | [MLP](#mlp-anatomy--hidden-vs-activation-layers) |
 | Softmax | $e^{z_i} / \sum_j e^{z_j}$ | [Softmax](#softmax--logits--probabilities) |
-| Cross-entropy (LM) | $-\frac{1}{T}\sum_t \log P(x_t \mid x_{<t})$ | [Loss](#loss-functions) |
+| Cross-entropy (LM) | $-\frac{1}{T}\sum_t \log P(x_t \mid x _ {\lt t})$ | [Loss](#loss-functions) |
 | Softmax + CE gradient | $p - y$ | [Loss](#loss-functions) |
 | Gradient step | $w \leftarrow w - \eta \nabla_w \mathcal{L}$ | [Optimizers](#optimizers--sgd--adam--adamw) |
-| He init | $\text{std} = \sqrt{2/n_{in}}$ | [Init](#initialization) |
+| He init | $\text{std} = \sqrt{2/n _ {in}}$ | [Init](#initialization) |
 | LayerNorm | $\gamma \odot \frac{x-\mu}{\sqrt{\sigma^2+\epsilon}} + \beta$ | [Norm](#normalization) |
 | RMSNorm | $\gamma \odot x / \text{RMS}(x)$ | [Norm](#normalization) |
 | Residual | $H(x) = F(x) + x$ | [Residuals](#residual-connections) |
 | Sinusoidal PE | $\sin / \cos(t / 10000^{2k/d})$ | [Positional encoding](#step-3--sinusoidal-the-original-transformer-papers-fix) |
-| RoPE | $q_m^\top k_n = x_m^\top W_Q^\top R_{n-m} W_K x_n$ | [RoPE](#step-4--rope-rotary-position-embedding--what-sota-models-use-today) |
+| RoPE | $q_m^\top k_n = x_m^\top W_Q^\top R _ {n-m} W_K x_n$ | [RoPE](#step-4--rope-rotary-position-embedding--what-sota-models-use-today) |
 | Attention | $\text{softmax}(QK^\top/\sqrt{d_k} + M)V$ | [Attention](#scaled-dot-product-attention) |
 | SwiGLU FFN | $(\text{Swish}(xW_g) \odot xW_u)W_d$ | [FFN](#swiglu-twist--why-modern-ffns-have-3-matrices) |
 | LoRA | $W + BA$ | [Fine-tuning](#fine-tuning-sft-and-lora) |
